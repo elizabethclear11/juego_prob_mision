@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220" width="220" height="220">
+  <!-- REEMPLAZAR: dise�o base de la ruleta (opcional, la ruleta se dibuja en CSS) -->
+  <circle cx="110" cy="110" r="100" fill="#FFF9C4" stroke="#F57F17" stroke-width="6"/>
+  <circle cx="110" cy="110" r="15" fill="#F57F17"/>
+</svg>

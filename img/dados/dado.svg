@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <!-- REEMPLAZAR: imagen del dado de Michi Money -->
+  <rect x="10" y="10" width="100" height="100" rx="16" fill="#FFF8E1" stroke="#FF8F00" stroke-width="4"/>
+  <circle cx="40" cy="40" r="10" fill="#E65100"/>
+  <circle cx="80" cy="40" r="10" fill="#E65100"/>
+  <circle cx="60" cy="60" r="10" fill="#E65100"/>
+  <circle cx="40" cy="80" r="10" fill="#E65100"/>
+  <circle cx="80" cy="80" r="10" fill="#E65100"/>
+</svg>

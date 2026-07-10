@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Misión Probabilidad — Michi Money</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="chispas-fondo" id="chispas-fondo" aria-hidden="true"></div>
+
+  <!-- PANTALLA 1: INICIO -->
+  <section id="pantalla-inicio" class="pantalla activa">
+    <div id="fondoInicio" class="fondo-imagen" role="img" aria-label="Fondo de la aventura"></div>
+    <div class="contenido-pantalla">
+      <img src="img/logo-titulo.png" alt="" class="logo-juego" id="logo-juego">
+      <h1 class="titulo-juego">MISIÓN PROBABILIDAD</h1>
+      <p class="subtitulo">Búsqueda del tesoro con Michi Money</p>
+
+      <div id="personajePrincipal" class="zona-imagen personaje-principal">
+        <img src="img/personajes/gato_explorador.png" alt="Michi Money, gato explorador">
+      </div>
+
+      <div class="grupo-botones">
+        <button class="btn btn-primario" id="btn-comenzar">Comenzar aventura</button>
+        <button class="btn btn-secundario" id="btn-instrucciones">Instrucciones</button>
+      </div>
+    </div>
+  </section>
+
+  <dialog id="modal-instrucciones" class="modal">
+    <div class="modal-contenido">
+      <h2>¿Cómo se juega?</h2>
+      <ul>
+        <li>Ayuda a <strong>Michi Money</strong> a encontrar el tesoro.</li>
+        <li>En cada misión explorarás y tomarás decisiones.</li>
+        <li>Observa qué pasa cuando repites las acciones.</li>
+        <li>No hay respuestas correctas ni incorrectas: ¡solo aventura!</li>
+      </ul>
+      <button class="btn btn-primario" id="btn-cerrar-instrucciones">Entendido</button>
+    </div>
+  </dialog>
+
+  <!-- PANTALLA 2: HISTORIA -->
+  <section id="pantalla-historia" class="pantalla">
+    <div class="contenido-pantalla panel-historia">
+      <h2>La aventura comienza</h2>
+      <p class="texto-historia">
+        Michi Money encontró un antiguo mapa del tesoro.<br><br>
+        Para llegar al cofre deberá elegir los caminos con mayor probabilidad de éxito.<br><br>
+        ¿Lo ayudarás?
+      </p>
+
+      <div id="historiaImagen" class="zona-imagen historia-imagen">
+        <img src="img/fondos/historia.png" alt="Mapa antiguo del tesoro">
+      </div>
+
+      <button class="btn btn-primario" id="btn-comenzar-mision">Comenzar misión</button>
+    </div>
+  </section>
+
+  <!-- PANTALLA 3: MAPA -->
+  <section id="pantalla-mapa" class="pantalla">
+    <div class="contenido-pantalla">
+      <h2 class="titulo-seccion">Mapa del tesoro</h2>
+      <p class="texto-ayuda">Completa cada misión para desbloquear la siguiente.</p>
+
+      <div id="mapaJuego" class="zona-imagen mapa-decorativo">
+        <img src="img/fondos/mapa.png" alt="Camino hacia el tesoro" class="mapa-fondo">
+      </div>
+
+      <div class="camino-tablero" id="camino-tablero">
+        <div class="nodo-mapa completado" data-id="inicio">
+          <img src="img/personajes/gato_explorador.png" class="nodo-icono-img nodo-icono-mini" alt="">
+          <span class="nodo-nombre">Inicio</span>
+        </div>
+        <div class="flecha-camino">↓</div>
+
+        <div class="nodo-mapa" data-id="dado" data-mision="1">
+          <img src="img/iconos/icono-dado.png" class="nodo-icono-img" alt="">
+          <span class="nodo-nombre">Dado</span>
+          <span class="nodo-estado"></span>
+        </div>
+        <div class="flecha-camino">↓</div>
+
+        <div class="nodo-mapa bloqueado" data-id="cajas" data-mision="2">
+          <img src="img/iconos/icono-cajas.png" class="nodo-icono-img" alt="">
+          <span class="nodo-nombre">Cajas</span>
+          <span class="nodo-estado">🔒</span>
+        </div>
+        <div class="flecha-camino">↓</div>
+
+        <div class="nodo-mapa bloqueado" data-id="bolsa" data-mision="3">
+          <img src="img/iconos/icono-bolsa.png" class="nodo-icono-img" alt="">
+          <span class="nodo-nombre">Bolsa sorpresa</span>
+          <span class="nodo-estado">🔒</span>
+        </div>
+        <div class="flecha-camino">↓</div>
+
+        <div class="nodo-mapa bloqueado" data-id="ruleta" data-mision="4">
+          <img src="img/iconos/icono-ruleta.png" class="nodo-icono-img" alt="">
+          <span class="nodo-nombre">Ruleta</span>
+          <span class="nodo-estado">🔒</span>
+        </div>
+        <div class="flecha-camino">↓</div>
+
+        <div class="nodo-mapa bloqueado" data-id="tesoro" data-mision="final">
+          <img src="img/iconos/icono-tesoro.png" class="nodo-icono-img" alt="">
+          <span class="nodo-nombre">Tesoro</span>
+          <span class="nodo-estado">🔒</span>
+        </div>
+      </div>
+
+      <button class="btn btn-secundario btn-volver" id="btn-mapa-inicio">← Volver al inicio</button>
+    </div>
+  </section>
+
+  <!-- MISIÓN 1: DADO -->
+  <section id="pantalla-dado" class="pantalla mision">
+    <div class="contenido-pantalla">
+      <header class="cabecera-mision">
+        <button class="btn btn-mini" id="btn-dado-mapa">← Mapa</button>
+        <h2>Misión 1: Lanzar el dado</h2>
+      </header>
+
+      <p class="narracion">Michi avanza según el número del dado. ¡Lanza y observa!</p>
+
+      <div class="area-mision-dado">
+        <div id="imagenDado" class="zona-imagen">
+          <button type="button" class="dado-interactivo" id="dado-animado" aria-label="Lanzar dado">
+            <img src="img/dados/dado-michi.png" alt="Dado del tesoro" class="dado-img">
+          </button>
+        </div>
+
+        <div id="personajeDado" class="zona-imagen personaje-mision">
+          <img src="img/personajes/michi-caminando.png" alt="Michi en el camino" id="michi-camino">
+        </div>
+      </div>
+
+      <div class="sendero-avance" id="sendero-avance" aria-label="Camino de avance"></div>
+      <p class="mensaje-juego" id="mensaje-dado">Toca el dado para comenzar.</p>
+
+      <button class="btn btn-primario btn-grande" id="btn-lanzar-dado">Lanzar dado</button>
+      <button class="btn btn-secundario oculto" id="btn-dado-continuar">Continuar al mapa →</button>
+    </div>
+  </section>
+
+  <!-- MISIÓN 2: CAJAS -->
+  <section id="pantalla-cajas" class="pantalla mision">
+    <div class="contenido-pantalla">
+      <header class="cabecera-mision">
+        <button class="btn btn-mini" id="btn-cajas-mapa">← Mapa</button>
+        <h2>Misión 2: Cajas misteriosas</h2>
+      </header>
+
+      <p class="narracion">Cada caja guarda algo distinto. Observa las pistas y elige una.</p>
+
+      <div id="imagenCajas" class="zona-imagen cajas-banner">
+        <img src="img/cajas/cajas-banner.png" alt="Tres cajas misteriosas">
+      </div>
+
+      <div class="cajas-contenedor" id="cajas-contenedor">
+        <div class="caja-item" data-caja="azul" data-prob="0.875" data-img="img/cajas/caja-azul.png">
+          <div class="caja-cuerpo">
+            <img src="img/cajas/caja-azul.png" alt="Caja azul" class="caja-img">
+          </div>
+          <p class="caja-nombre">Caja Azul</p>
+          <div class="pista-visual">🟡🟡🟡🟡🟡🟡🟡⚫</div>
+        </div>
+
+        <div class="caja-item" data-caja="verde" data-prob="0.5" data-img="img/cajas/caja-bronce.png">
+          <div class="caja-cuerpo">
+            <img src="img/cajas/caja-bronce.png" alt="Caja bronce" class="caja-img">
+          </div>
+          <p class="caja-nombre">Caja Bronce</p>
+          <div class="pista-visual">🟡🟡🟡🟡⚫⚫⚫⚫</div>
+        </div>
+
+        <div class="caja-item" data-caja="roja" data-prob="0.25" data-img="img/cajas/caja-hierro.png">
+          <div class="caja-cuerpo">
+            <img src="img/cajas/caja-hierro.png" alt="Caja hierro" class="caja-img">
+          </div>
+          <p class="caja-nombre">Caja Hierro</p>
+          <div class="pista-visual">🟡🟡⚫⚫⚫⚫⚫⚫</div>
+        </div>
+      </div>
+
+      <div class="resultado-caja" id="resultado-caja"></div>
+      <div class="registro-resultados" id="registro-cajas"></div>
+      <p class="mensaje-juego" id="mensaje-cajas">Abre las cajas que quieras explorar.</p>
+
+      <button class="btn btn-primario oculto" id="btn-cajas-continuar">Continuar al mapa →</button>
+    </div>
+  </section>
+
+  <!-- MISIÓN 3: BOLSA -->
+  <section id="pantalla-bolsa" class="pantalla mision">
+    <div class="contenido-pantalla">
+      <header class="cabecera-mision">
+        <button class="btn btn-mini" id="btn-bolsa-mapa">← Mapa</button>
+        <h2>Misión 3: Bolsa sorpresa</h2>
+      </header>
+
+      <p class="narracion">Mete la pata en la bolsa y saca fichas. ¡Repite y observa!</p>
+
+      <div id="imagenBolsa" class="zona-imagen bolsa-zona">
+        <button class="bolsa-clic" id="bolsa-clic" type="button" aria-label="Sacar ficha de la bolsa">
+          <img src="img/bolsa/bolsa.png" alt="Bolsa sorpresa">
+        </button>
+      </div>
+
+      <div class="ficha-saliente" id="ficha-saliente"></div>
+      <p class="mensaje-juego" id="mensaje-bolsa">Toca la bolsa para sacar una ficha.</p>
+      <p class="contador-intentos" id="contador-bolsa">Intentos: 0</p>
+
+      <div class="grafico-contenedor oculto" id="grafico-bolsa">
+        <h3>Lo que has sacado</h3>
+        <div class="grafico-barras">
+          <div class="barra-grupo">
+            <div class="barra barra-azul" id="barra-azul" style="--altura: 10%"></div>
+            <span class="barra-etiqueta">Azul<br><strong id="num-azul">0</strong></span>
+          </div>
+          <div class="barra-grupo">
+            <div class="barra barra-roja" id="barra-roja" style="--altura: 10%"></div>
+            <span class="barra-etiqueta">Plata<br><strong id="num-roja">0</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primario oculto" id="btn-bolsa-continuar">Continuar al mapa →</button>
+    </div>
+  </section>
+
+  <!-- MISIÓN 4: RULETA -->
+  <section id="pantalla-ruleta" class="pantalla mision">
+    <div class="contenido-pantalla">
+      <header class="cabecera-mision">
+        <button class="btn btn-mini" id="btn-ruleta-mapa">← Mapa</button>
+        <h2>Misión 4: Ruleta de la suerte</h2>
+      </header>
+
+      <p class="narracion">Gira la ruleta y descubre qué te trae la suerte.</p>
+
+      <div id="imagenRuleta" class="zona-imagen ruleta-zona">
+        <div class="ruleta-contenedor">
+          <div class="ruleta-flecha">▼</div>
+          <div class="ruleta-disco" id="ruleta-disco">
+            <img src="img/ruleta/ruleta-decorativa.png" alt="Ruleta de la suerte" class="ruleta-img">
+          </div>
+          <div class="ruleta-centro"></div>
+        </div>
+      </div>
+
+      <p class="mensaje-juego" id="mensaje-ruleta">¡Presiona girar!</p>
+      <div class="registro-ruleta" id="registro-ruleta"></div>
+
+      <button class="btn btn-primario btn-grande" id="btn-girar-ruleta">Girar</button>
+      <button class="btn btn-primario oculto" id="btn-ruleta-continuar">Ir al tesoro →</button>
+    </div>
+  </section>
+
+  <!-- PANTALLA FINAL: TESORO -->
+  <section id="pantalla-tesoro" class="pantalla">
+    <div class="contenido-pantalla pantalla-final">
+      <div id="imagenTesoro" class="zona-imagen tesoro-zona">
+        <div class="cofre-contenedor" id="cofre-contenedor">
+          <img src="img/tesoro/cofre.png" alt="Cofre del tesoro" id="img-cofre" class="img-cofre">
+          <div class="monedas-caida" id="monedas-caida"></div>
+        </div>
+        <div class="celebracion-michi oculto" id="celebracion-michi">
+          <img src="img/personajes/michi-celebrando.png" alt="Michi celebrando">
+        </div>
+      </div>
+
+      <div class="confeti-contenedor" id="confeti-contenedor" aria-hidden="true"></div>
+
+      <div class="mensaje-final oculto" id="mensaje-final">
+        <h2>¡Lo lograste!</h2>
+        <p>
+          Mientras jugabas aprendiste que algunas opciones tienen más posibilidades que otras.<br>
+          Eso se llama <strong>Probabilidad</strong>.
+        </p>
+        <button class="btn btn-primario" id="btn-reiniciar">Jugar de nuevo</button>
+        <button class="btn btn-secundario" id="btn-final-inicio">Volver al inicio</button>
+      </div>
+    </div>
+  </section>
+
+  <script src="script.js"></script>
+</body>
+</html>
