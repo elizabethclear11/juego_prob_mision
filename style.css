@@ -698,6 +698,102 @@ button {
   line-height: 1.5;
 }
 
+/* ── Modal resultado de la bolsa ── */
+.modal.modal-resultado-bolsa {
+  max-width: 520px;
+}
+
+.modal-resultado-bolsa .modal-contenido {
+  text-align: center;
+  padding: 1.25rem 1.35rem 1.15rem;
+}
+
+.modal-bolsa-fila {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  text-align: left;
+}
+
+.modal-bolsa-fila .modal-bolsa-gato {
+  width: 96px;
+  height: auto;
+  flex-shrink: 0;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 16px var(--sombra-fuerte));
+  animation: flotar 3s ease-in-out infinite;
+}
+
+.modal-bolsa-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.modal-bolsa-info h2 {
+  margin-bottom: 0.35rem;
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+
+.modal-bolsa-etiqueta-composicion {
+  font-size: 0.8rem;
+  color: var(--texto-suave);
+  margin: 0 0 0.3rem;
+}
+
+.modal-bolsa-composicion {
+  margin-bottom: 0.45rem;
+}
+
+.modal-bolsa-composicion .bolsa-proporcion-visual {
+  gap: 1.25rem;
+  justify-content: flex-start;
+}
+
+.modal-bolsa-composicion .bolsa-proporcion-ficha {
+  width: 36px;
+  height: 36px;
+}
+
+.modal-bolsa-composicion .bolsa-proporcion-pct {
+  font-size: 1rem;
+}
+
+.modal-resultado-bolsa.modal-acierto .modal-contenido {
+  background: linear-gradient(160deg, rgba(16, 60, 30, 0.97), rgba(10, 14, 20, 0.98));
+  border-color: #10B981;
+}
+
+.modal-resultado-bolsa.modal-acierto h2 {
+  color: #10B981;
+  text-shadow: 0 0 16px rgba(16, 185, 129, 0.6);
+}
+
+.modal-resultado-bolsa.modal-fallo .modal-contenido {
+  background: linear-gradient(160deg, rgba(60, 16, 16, 0.97), rgba(10, 14, 20, 0.98));
+  border-color: #EF4444;
+}
+
+.modal-resultado-bolsa.modal-fallo h2 {
+  color: #EF4444;
+  text-shadow: 0 0 16px rgba(239, 68, 68, 0.6);
+}
+
+.modal-resultado-bolsa .modal-bolsa-info p {
+  font-size: 0.88rem;
+  color: var(--blanco-suave);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.modal-resultado-bolsa .btn {
+  width: 100%;
+  max-width: 220px;
+  margin: 0 auto;
+  display: flex;
+}
+
 /* Comparación de objetos: elegiste → salió */
 .modal-caja-objetos {
   display: flex;
@@ -2353,6 +2449,34 @@ button {
   object-fit: contain;
   flex-shrink: 0;
   filter: drop-shadow(0 0 8px var(--resplandor-dorado));
+  transition: transform 0.25s ease;
+}
+
+.ruleta-michi-img.ruleta-michi-reaccion {
+  width: 88px;
+  height: 88px;
+}
+
+.ruleta-michi-img.reaccion-acierto {
+  animation: ruletaMichiSalta 0.65s ease;
+}
+
+.ruleta-michi-img.reaccion-fallo {
+  animation: ruletaMichiSacude 0.55s ease;
+}
+
+@keyframes ruletaMichiSalta {
+  0%, 100% { transform: translateY(0) scale(1); }
+  35% { transform: translateY(-10px) scale(1.08); }
+  65% { transform: translateY(-4px) scale(1.03); }
+}
+
+@keyframes ruletaMichiSacude {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px) rotate(-4deg); }
+  40% { transform: translateX(6px) rotate(4deg); }
+  60% { transform: translateX(-4px) rotate(-2deg); }
+  80% { transform: translateX(4px) rotate(2deg); }
 }
 
 .ruleta-michi-mensaje {
@@ -2563,6 +2687,57 @@ button {
   color: var(--dorado-claro);
   margin-top: 0.5rem;
   animation: pulsoBoton 1s ease-in-out infinite;
+}
+
+.ruleta-modal-comparacion {
+  margin: 0.75rem 0;
+}
+
+.ruleta-modal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.ruleta-modal-col {
+  text-align: center;
+}
+
+.ruleta-modal-col p {
+  margin: 0 0 0.35rem;
+  font-size: 0.85rem;
+  color: var(--blanco-suave);
+  font-weight: 600;
+}
+
+.ruleta-modal-premio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: var(--radio-btn);
+}
+
+.ruleta-modal-premio img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.ruleta-modal-premio span {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--dorado-claro);
+}
+
+.modal-resultado-bolsa.modal-acierto .modal-bolsa-gato {
+  animation: ruletaMichiSalta 0.65s ease;
+}
+
+.modal-resultado-bolsa.modal-fallo .modal-bolsa-gato {
+  animation: ruletaMichiSacude 0.55s ease;
 }
 
 .ruleta-resultado-panel {
@@ -2889,6 +3064,246 @@ button {
 @keyframes chispaFlotar {
   0%, 100% { opacity: 0; transform: translateY(0); }
   50%      { opacity: 0.8; transform: translateY(-30px); }
+}
+
+/* ═══ SISTEMA GLOBAL DE PROGRESO ═══ */
+.hud-global {
+  position: fixed;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hud-global.oculto {
+  display: none;
+}
+
+.contador-puntos-global {
+  margin-left: 0;
+}
+
+.icono-punto-contador {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 8px var(--resplandor-dorado));
+}
+
+.btn-personajes-hud {
+  white-space: nowrap;
+  padding: 0.45rem 0.75rem !important;
+  font-size: 0.85rem !important;
+}
+
+.capa-animacion-puntos {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2000;
+  overflow: hidden;
+}
+
+.anim-punto-vuelo {
+  position: fixed;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 900;
+  font-size: 1.1rem;
+  color: var(--dorado-brillo);
+  text-shadow: 0 0 10px var(--resplandor-dorado);
+  pointer-events: none;
+  z-index: 2001;
+}
+
+.anim-punto-vuelo img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.input-perfil {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+  border-radius: var(--radio-btn);
+  border: 2px solid var(--dorado);
+  background: var(--gris-oscuro);
+  color: var(--blanco);
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.input-perfil:focus {
+  outline: none;
+  box-shadow: 0 0 16px var(--resplandor-dorado);
+}
+
+.progreso-linea {
+  margin-bottom: 0.5rem;
+  color: var(--blanco-suave);
+}
+
+.texto-ayuda-perfil {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  color: var(--blanco-suave);
+  opacity: 0.9;
+}
+
+.progreso-tabla-contenedor {
+  width: 100%;
+  max-height: 50vh;
+  overflow: auto;
+  margin: 1rem 0;
+  border: 1px solid var(--gris-medio);
+  border-radius: var(--radio-btn);
+}
+
+.progreso-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+  color: var(--blanco-suave);
+}
+
+.progreso-tabla th,
+.progreso-tabla td {
+  padding: 0.65rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--gris-medio);
+}
+
+.progreso-tabla th {
+  background: var(--gris-oscuro);
+  color: var(--dorado-claro);
+  font-weight: 700;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.progreso-tabla tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.progreso-fila-activa {
+  background: rgba(212, 160, 23, 0.12);
+}
+
+.progreso-sin-datos {
+  margin: 0.5rem 0 1rem;
+  color: var(--blanco-suave);
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .progreso-tabla thead {
+    display: none;
+  }
+
+  .progreso-tabla tr {
+    display: block;
+    margin-bottom: 0.75rem;
+    border: 1px solid var(--gris-medio);
+    border-radius: var(--radio-btn);
+    overflow: hidden;
+  }
+
+  .progreso-tabla td {
+    display: block;
+    border-bottom: 1px solid var(--gris-medio);
+    padding-left: 0.75rem;
+  }
+
+  .progreso-tabla td:last-child {
+    border-bottom: none;
+  }
+
+  .progreso-tabla td::before {
+    content: attr(data-label) ": ";
+    font-weight: 700;
+    color: var(--dorado-claro);
+  }
+}
+
+.progreso-personajes-lista {
+  margin: 1rem 0;
+  text-align: left;
+  color: var(--blanco-suave);
+}
+
+.progreso-personajes-lista ul {
+  margin: 0.5rem 0 0 1.25rem;
+  line-height: 1.7;
+}
+
+.personajes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.personaje-tarjeta {
+  background: var(--gris-oscuro);
+  border: 2px solid var(--gris-medio);
+  border-radius: var(--radio-btn);
+  padding: 0.65rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.personaje-tarjeta.activo {
+  border-color: var(--dorado-brillo);
+  box-shadow: 0 0 16px var(--resplandor-dorado);
+}
+
+.personaje-tarjeta img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+}
+
+.personaje-tarjeta-nombre {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--dorado-claro);
+}
+
+.personaje-tarjeta-estado {
+  font-size: 0.72rem;
+  color: var(--texto-suave);
+}
+
+.personaje-tarjeta .btn {
+  min-width: 0;
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.modal-nuevo-personaje-contenido h2 {
+  color: #10B981;
+}
+
+.modal-nuevo-gato-nombre {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--dorado-claro) !important;
+}
+
+.contador-monedas.pulso-puntos {
+  animation: pulsoBoton 0.5s ease;
 }
 
 /* ── Responsive ── */

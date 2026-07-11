@@ -10,6 +10,17 @@
 
   <div class="chispas-fondo" id="chispas-fondo" aria-hidden="true"></div>
 
+  <!-- HUD global: puntos y personajes (visible durante la partida) -->
+  <div id="hud-global" class="hud-global oculto" aria-label="Progreso del jugador">
+    <div class="contador-monedas contador-puntos-global" id="contador-puntos-global">
+      <img src="img/punto.png" alt="" class="icono-punto-contador">
+      <span class="numero-monedas" id="numero-puntos-global">0</span>
+    </div>
+    <button type="button" class="btn btn-mini btn-personajes-hud" id="btn-personajes-hud">Personajes</button>
+  </div>
+
+  <div id="capa-animacion-puntos" class="capa-animacion-puntos" aria-hidden="true"></div>
+
   <!-- PANTALLA 1: INICIO -->
   <section id="pantalla-inicio" class="pantalla activa">
     <div id="fondoInicio" class="fondo-imagen" role="img" aria-label="Fondo de la aventura"></div>
@@ -24,7 +35,8 @@
 
       <div class="grupo-botones">
         <button class="btn btn-primario" id="btn-comenzar">Continuar aventura</button>
-        <button class="btn btn-secundario" id="btn-reiniciar-inicio">Reiniciar juego</button>
+        <button class="btn btn-secundario" id="btn-reiniciar-inicio">Reiniciar partida</button>
+        <button class="btn btn-secundario" id="btn-mi-progreso">Mi progreso</button>
         <button class="btn btn-secundario" id="btn-instrucciones">Instrucciones</button>
       </div>
     </div>
@@ -45,21 +57,93 @@
 
   <dialog id="modal-reiniciar" class="modal">
     <div class="modal-contenido modal-advertencia">
-      <h2>⚠️ Reiniciar Juego</h2>
+      <h2>⚠️ Reiniciar partida</h2>
       <p class="texto-advertencia">
-        Esto borrará <strong>todo tu progreso</strong>:
+        Esto borrará <strong>el progreso de la aventura actual</strong>:
       </p>
       <ul class="lista-progreso">
         <li>❌ Posición en el camino del dado</li>
-        <li>❌ Monedas ganadas</li>
         <li>❌ Estadísticas de predicción</li>
         <li>❌ Misiones completadas</li>
         <li>❌ Resultados de cajas, bolsa y ruleta</li>
       </ul>
-      <p class="texto-confirmacion">¿Estás seguro de que quieres empezar de nuevo?</p>
+      <p class="texto-confirmacion">Se conservan los puntos y gatos de cada explorador. Al comenzar de nuevo se pedirá el nombre del niño o niña.</p>
       <div class="botones-modal">
-        <button class="btn btn-primario" id="btn-confirmar-reinicio">Sí, reiniciar</button>
+        <button class="btn btn-primario" id="btn-confirmar-reinicio">Sí, reiniciar partida</button>
         <button class="btn btn-secundario" id="btn-cancelar-reinicio">Cancelar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="modal-perfil-inicial" class="modal">
+    <div class="modal-contenido">
+      <h2>¡Bienvenido explorador!</h2>
+      <p>¿Quién va a jugar? Escribe tu nombre:</p>
+      <p class="texto-ayuda-perfil">Si ya jugaste antes, usa el mismo nombre para recuperar tus puntos y gatos.</p>
+      <input type="text" id="input-nombre-jugador" class="input-perfil" maxlength="24" placeholder="Tu nombre">
+      <button class="btn btn-primario" id="btn-guardar-perfil">¡Empezar aventura!</button>
+    </div>
+  </dialog>
+
+  <dialog id="modal-mi-progreso" class="modal">
+    <div class="modal-contenido modal-progreso-contenido">
+      <h2>Progreso de exploradores</h2>
+      <div class="progreso-tabla-contenedor">
+        <table class="progreso-tabla" id="progreso-tabla">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Gatos coleccionados</th>
+              <th>Puntos acumulados</th>
+            </tr>
+          </thead>
+          <tbody id="progreso-tabla-cuerpo"></tbody>
+        </table>
+      </div>
+      <p class="progreso-sin-datos oculto" id="progreso-sin-datos">Aún no hay exploradores registrados.</p>
+      <div class="botones-modal">
+        <button class="btn btn-secundario" id="btn-borrar-progreso-total">Borrar todos los registros</button>
+        <button class="btn btn-primario" id="btn-cerrar-progreso">Cerrar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="modal-personajes" class="modal">
+    <div class="modal-contenido modal-personajes-contenido">
+      <h2>Mi colección</h2>
+      <div class="personajes-grid" id="personajes-grid"></div>
+      <button class="btn btn-primario" id="btn-cerrar-personajes">Cerrar</button>
+    </div>
+  </dialog>
+
+  <dialog id="modal-nuevo-personaje" class="modal modal-resultado-dado modal-acierto">
+    <div class="modal-contenido modal-nuevo-personaje-contenido">
+      <div class="modal-bolsa-fila">
+        <img id="modal-nuevo-gato-img" src="" alt="" class="modal-bolsa-gato">
+        <div class="modal-bolsa-info">
+          <h2>¡Felicidades!</h2>
+          <p>Has conseguido un nuevo compañero</p>
+          <p class="modal-nuevo-gato-nombre" id="modal-nuevo-gato-nombre"></p>
+        </div>
+      </div>
+      <button class="btn btn-primario" id="btn-cerrar-nuevo-personaje">¡Genial!</button>
+    </div>
+  </dialog>
+
+  <dialog id="modal-borrar-progreso" class="modal">
+    <div class="modal-contenido modal-advertencia">
+      <h2>⚠️ Borrar todos los registros</h2>
+      <p class="texto-advertencia">Se eliminarán permanentemente los datos de todos los exploradores:</p>
+      <ul class="lista-progreso">
+        <li>❌ Nombres guardados</li>
+        <li>❌ Puntos acumulados de cada niño o niña</li>
+        <li>❌ Gatos coleccionados</li>
+        <li>❌ Progreso de partidas</li>
+      </ul>
+      <p class="texto-confirmacion">¿Estás seguro?</p>
+      <div class="botones-modal">
+        <button class="btn btn-primario" id="btn-confirmar-borrar-total">Sí, borrar todo</button>
+        <button class="btn btn-secundario" id="btn-cancelar-borrar-total">Cancelar</button>
       </div>
     </div>
   </dialog>
@@ -220,6 +304,37 @@
     </div>
   </dialog>
 
+  <!-- Modal resultado de la bolsa -->
+  <dialog id="modal-resultado-bolsa" class="modal modal-resultado-bolsa">
+    <div class="modal-contenido modal-resultado-bolsa-contenido">
+      <div class="modal-bolsa-fila">
+        <img id="modal-bolsa-gato" src="" alt="" class="modal-bolsa-gato">
+        <div class="modal-bolsa-info">
+          <h2 id="modal-bolsa-titulo"></h2>
+          <p class="modal-bolsa-etiqueta-composicion">La bolsa tenía:</p>
+          <div id="modal-bolsa-composicion" class="modal-bolsa-composicion"></div>
+          <p id="modal-bolsa-mensaje"></p>
+        </div>
+      </div>
+      <button class="btn btn-primario" id="btn-cerrar-modal-bolsa">¡Entendido!</button>
+    </div>
+  </dialog>
+
+  <!-- Modal resultado de la ruleta -->
+  <dialog id="modal-resultado-ruleta" class="modal modal-resultado-bolsa">
+    <div class="modal-contenido modal-resultado-bolsa-contenido">
+      <div class="modal-bolsa-fila">
+        <img id="modal-ruleta-gato" src="" alt="" class="modal-bolsa-gato">
+        <div class="modal-bolsa-info">
+          <h2 id="modal-ruleta-titulo"></h2>
+          <div id="modal-ruleta-comparacion" class="ruleta-modal-comparacion"></div>
+          <p id="modal-ruleta-mensaje"></p>
+        </div>
+      </div>
+      <button class="btn btn-primario" id="btn-cerrar-modal-ruleta">¡Entendido!</button>
+    </div>
+  </dialog>
+
   <!-- MISIÓN 1: DADO -->
   <section id="pantalla-dado" class="pantalla mision">
     <div class="contenido-pantalla">
@@ -229,7 +344,7 @@
         
         <!-- Contador de monedas en esquina superior derecha -->
         <div class="contador-monedas" id="contador-monedas">
-          <img src="img/tesoro/cofre.png" alt="Cofre" class="icono-cofre-contador">
+          <img src="img/punto.png" alt="" class="icono-punto-contador">
           <span class="numero-monedas" id="numero-monedas">0</span>
         </div>
       </header>
@@ -295,7 +410,7 @@
         <h2>Misión 2: Cajas misteriosas</h2>
         <!-- Contador de monedas compartido con misión 1 -->
         <div class="contador-monedas" id="contador-monedas-cajas">
-          <img src="img/tesoro/cofre.png" alt="Cofre" class="icono-cofre-contador">
+          <img src="img/punto.png" alt="" class="icono-punto-contador">
           <span class="numero-monedas" id="numero-monedas-cajas">0</span>
         </div>
       </header>
@@ -488,13 +603,13 @@
         <button class="btn btn-mini" id="btn-ruleta-mapa">← Mapa</button>
         <h2>Misión 4: Ruleta de la suerte</h2>
         <div class="contador-monedas" id="contador-monedas-ruleta">
-          <img src="img/tesoro/cofre.png" alt="Cofre" class="icono-cofre-contador">
+          <img src="img/punto.png" alt="" class="icono-punto-contador">
           <span class="numero-monedas" id="numero-monedas-ruleta">0</span>
         </div>
       </header>
 
       <p class="narracion" id="ruleta-narracion">¡El desafío final! Predice, gira y aprende sobre probabilidades.</p>
-      <p class="ruleta-contador-intentos" id="ruleta-contador-intentos">Intentos: 0/5</p>
+      <p class="ruleta-contador-intentos" id="ruleta-contador-intentos">Aciertos: 0/3</p>
 
       <!-- Michi guía -->
       <div class="ruleta-michi-panel" id="ruleta-michi-panel">
@@ -568,6 +683,7 @@
 
       <button class="btn btn-primario btn-grande" id="btn-girar-ruleta" disabled>Girar</button>
       <button class="btn btn-primario btn-grande oculto" id="btn-ruleta-siguiente">Siguiente intento</button>
+      <button class="btn btn-secundario oculto" id="btn-ruleta-reintentar">Intentar de nuevo</button>
       <button class="btn btn-primario oculto" id="btn-ruleta-continuar">¡Al tesoro!</button>
     </div>
   </section>

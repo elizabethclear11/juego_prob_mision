@@ -11,7 +11,29 @@
      CONSTANTES Y ESTADO
      ═══════════════════════════════════════ */
   const CLAVE_GUARDADO = 'mision-probabilidad-michi';
+  const CLAVE_PERFIL = 'mision-probabilidad-perfil';
+  const CLAVE_REGISTRO = 'mision-probabilidad-registro';
   const MISIONES_ORDEN = ['dado', 'cajas', 'bolsa', 'ruleta'];
+
+  const CATALOGO_PERSONAJES = {
+    michiexplorador: {
+      id: 'michiexplorador',
+      nombre: 'Michi Explorador',
+      img: 'img/personajes/gato_explorador.png'
+    },
+    gato_esquin2: { id: 'gato_esquin2', nombre: 'Michi Aventurero', img: 'img/personajes/gato_esquin2.png' },
+    gato_esquin3: { id: 'gato_esquin3', nombre: 'Michi Investigador', img: 'img/personajes/gato_esquin3.png' },
+    gato_esquin4: { id: 'gato_esquin4', nombre: 'Michi Ecuador', img: 'img/personajes/gato_esquin4.png' },
+    gato_esquin5: { id: 'gato_esquin5', nombre: 'Michi Amor', img: 'img/personajes/gato_esquin5.png' },
+    gato_esquin6: { id: 'gato_esquin6', nombre: 'Michi Todologo', img: 'img/personajes/gato_esquin6.png' },
+    gato_esquin7: { id: 'gato_esquin7', nombre: 'Michi Especial', img: 'img/personajes/gato_esquin7.png' }
+  };
+
+  const POOL_GATOS_DESBLOQUEABLES = [
+    'gato_esquin2', 'gato_esquin3', 'gato_esquin4', 'gato_esquin5', 'gato_esquin6', 'gato_esquin7'
+  ];
+
+  const IMG_PUNTO = 'img/punto.png';
 
   const IMG = {
     moneda: 'img/objetos/moneda-dorada.png',
@@ -74,7 +96,514 @@
     estadoBolsa: null
   };
 
-  let estado = cargarEstado();
+  const perfilDefault = {
+    nombre: '',
+    puntosTotales: 0,
+    personajesDesbloqueados: ['michiexplorador'],
+    personajeActivo: 'michiexplorador',
+    recompensasEntregadas: []
+  };
+
+  const registroDefault = {
+    jugadores: [],
+    jugadorActivo: null,
+    solicitarNombreAlComenzar: true,
+    _migrado: false
+  };
+
+  let registro = { ...registroDefault };
+  let jugadorActivoKey = null;
+  let perfil = { ...perfilDefault };
+  let estado = { ...estadoDefault };
+
+  function normalizarNombre(nombre) {
+    return (nombre || '').trim().toLowerCase();
+  }
+
+  function crearJugadorBase(nombre, extras = {}) {
+    const nombreLimpio = (nombre || '').trim();
+    return {
+      nombre: nombreLimpio,
+      nombreKey: normalizarNombre(nombreLimpio),
+      puntosTotales: 0,
+      personajesDesbloqueados: ['michiexplorador'],
+      personajeActivo: 'michiexplorador',
+      recompensasEntregadas: [],
+      partida: { ...estadoDefault },
+      ...extras
+    };
+  }
+
+  function sanitizarJugador(datos) {
+    const base = crearJugadorBase(datos.nombre || 'Explorador', datos);
+    if (!base.personajesDesbloqueados.includes('michiexplorador')) {
+      base.personajesDesbloqueados.unshift('michiexplorador');
+    }
+    if (!base.personajeActivo || !CATALOGO_PERSONAJES[base.personajeActivo]) {
+      base.personajeActivo = 'michiexplorador';
+    }
+    base.partida = { ...estadoDefault, ...(datos.partida || {}) };
+    return base;
+  }
+
+  function cargarRegistro() {
+    try {
+      const datos = localStorage.getItem(CLAVE_REGISTRO);
+      if (!datos) return { ...registroDefault };
+      const parsed = JSON.parse(datos);
+      return {
+        ...registroDefault,
+        ...parsed,
+        jugadores: Array.isArray(parsed.jugadores)
+          ? parsed.jugadores.map(sanitizarJugador)
+          : []
+      };
+    } catch {
+      return { ...registroDefault };
+    }
+  }
+
+  function guardarRegistro() {
+    localStorage.setItem(CLAVE_REGISTRO, JSON.stringify(registro));
+  }
+
+  function perfilDesdeJugador(jugador) {
+    return {
+      nombre: jugador.nombre,
+      puntosTotales: jugador.puntosTotales || 0,
+      personajesDesbloqueados: [...jugador.personajesDesbloqueados],
+      personajeActivo: jugador.personajeActivo,
+      recompensasEntregadas: [...(jugador.recompensasEntregadas || [])]
+    };
+  }
+
+  function cargarJugadorEnMemoria(jugador) {
+    jugadorActivoKey = jugador.nombreKey;
+    perfil = perfilDesdeJugador(jugador);
+    estado = { ...estadoDefault, ...jugador.partida };
+    registro.jugadorActivo = jugador.nombreKey;
+  }
+
+  function persistirJugadorActivo() {
+    if (!jugadorActivoKey) return;
+    const jugador = registro.jugadores.find(j => j.nombreKey === jugadorActivoKey);
+    if (!jugador) return;
+    jugador.nombre = perfil.nombre;
+    jugador.puntosTotales = perfil.puntosTotales || 0;
+    jugador.personajesDesbloqueados = [...perfil.personajesDesbloqueados];
+    jugador.personajeActivo = perfil.personajeActivo;
+    jugador.recompensasEntregadas = [...(perfil.recompensasEntregadas || [])];
+    jugador.partida = { ...estado };
+  }
+
+  function activarJugador(nombre) {
+    const nombreLimpio = (nombre || '').trim();
+    const key = normalizarNombre(nombreLimpio);
+    if (!key) return false;
+
+    let jugador = registro.jugadores.find(j => j.nombreKey === key);
+    if (!jugador) {
+      jugador = sanitizarJugador(crearJugadorBase(nombreLimpio));
+      registro.jugadores.push(jugador);
+    } else {
+      jugador.nombre = nombreLimpio;
+    }
+
+    registro.jugadorActivo = key;
+    registro.solicitarNombreAlComenzar = false;
+    cargarJugadorEnMemoria(jugador);
+    guardarRegistro();
+    return true;
+  }
+
+  function migrarSistemaJugadores() {
+    registro = cargarRegistro();
+    if (registro._migrado) return;
+
+    try {
+      const datosPerfil = localStorage.getItem(CLAVE_PERFIL);
+      const datosEstado = localStorage.getItem(CLAVE_GUARDADO);
+      if (datosPerfil) {
+        const antiguo = { ...perfilDefault, ...JSON.parse(datosPerfil) };
+        if (antiguo.nombre && antiguo.nombre.trim()) {
+          const partida = datosEstado
+            ? { ...estadoDefault, ...JSON.parse(datosEstado) }
+            : { ...estadoDefault };
+          const jugador = sanitizarJugador({
+            nombre: antiguo.nombre,
+            puntosTotales: antiguo.puntosTotales,
+            personajesDesbloqueados: antiguo.personajesDesbloqueados,
+            personajeActivo: antiguo.personajeActivo,
+            recompensasEntregadas: antiguo.recompensasEntregadas,
+            partida
+          });
+          registro.jugadores.push(jugador);
+          registro.jugadorActivo = jugador.nombreKey;
+          registro.solicitarNombreAlComenzar = false;
+        }
+      }
+    } catch {
+      /* ignorar errores de migración */
+    }
+
+    registro._migrado = true;
+    guardarRegistro();
+  }
+
+  function restaurarSesionActiva() {
+    if (registro.solicitarNombreAlComenzar || !registro.jugadorActivo) {
+      jugadorActivoKey = null;
+      perfil = { ...perfilDefault };
+      estado = { ...estadoDefault };
+      return;
+    }
+
+    const jugador = registro.jugadores.find(j => j.nombreKey === registro.jugadorActivo);
+    if (jugador) {
+      cargarJugadorEnMemoria(jugador);
+    } else {
+      registro.jugadorActivo = null;
+      registro.solicitarNombreAlComenzar = true;
+      jugadorActivoKey = null;
+      perfil = { ...perfilDefault };
+      estado = { ...estadoDefault };
+      guardarRegistro();
+    }
+  }
+
+  function inicializarAlmacenamiento() {
+    migrarSistemaJugadores();
+    restaurarSesionActiva();
+  }
+
+  function guardarPerfil() {
+    persistirJugadorActivo();
+    guardarRegistro();
+  }
+
+  function migrarMonedasAlPerfil() {
+    const monedasPartida = estado.monedasDado || 0;
+    if (monedasPartida > 0 && !estado._puntosMigradosAlPerfil) {
+      perfil.puntosTotales = (perfil.puntosTotales || 0) + monedasPartida;
+      estado.monedasDado = 0;
+      estado._puntosMigradosAlPerfil = true;
+      guardarPerfil();
+      guardarEstado();
+    }
+  }
+
+  function puntosAdicionalesParaDesbloqueo(indice) {
+    return 3 + 2 * indice;
+  }
+
+  function umbralAcumuladoDesbloqueo(indice) {
+    let total = 0;
+    for (let i = 0; i <= indice; i++) {
+      total += puntosAdicionalesParaDesbloqueo(i);
+    }
+    return total;
+  }
+
+  function obtenerPersonaje(id) {
+    return CATALOGO_PERSONAJES[id] || CATALOGO_PERSONAJES.michiexplorador;
+  }
+
+  function obtenerImgPersonajeActivo() {
+    return obtenerPersonaje(perfil.personajeActivo).img;
+  }
+
+  function actualizarBarraPuntos() {
+    const total = String(perfil.puntosTotales || 0);
+    ['numero-puntos-global', 'numero-monedas', 'numero-monedas-cajas', 'numero-monedas-ruleta'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = total;
+    });
+    const contadores = document.querySelectorAll('.contador-monedas, .contador-puntos-global');
+    contadores.forEach(c => {
+      c.classList.remove('pulso-puntos');
+      void c.offsetWidth;
+      c.classList.add('pulso-puntos');
+    });
+  }
+
+  function aplicarPersonajeActivo() {
+    const src = obtenerImgPersonajeActivo();
+    const nombre = obtenerPersonaje(perfil.personajeActivo).nombre;
+    const viajero = document.querySelector('#michi-viajero img');
+    if (viajero) {
+      viajero.src = src;
+      viajero.alt = nombre;
+    }
+    const camino = document.getElementById('michi-camino');
+    if (camino) {
+      camino.src = src;
+      camino.alt = nombre;
+    }
+    const inicioIcono = document.querySelector('.punto-mapa[data-id="inicio"] .punto-icono img');
+    if (inicioIcono) {
+      inicioIcono.src = src;
+      inicioIcono.alt = nombre;
+    }
+  }
+
+  function actualizarVisibilidadHud() {
+    const hud = document.getElementById('hud-global');
+    const activa = document.querySelector('.pantalla.activa');
+    if (!hud || !activa) return;
+    const ocultar = activa.id === 'pantalla-inicio' || activa.id === 'pantalla-historia';
+    hud.classList.toggle('oculto', ocultar);
+  }
+
+  function elegirGatoAleatorio() {
+    const disponibles = POOL_GATOS_DESBLOQUEABLES.filter(
+      id => !perfil.personajesDesbloqueados.includes(id)
+    );
+    if (!disponibles.length) return null;
+    const id = disponibles[Math.floor(Math.random() * disponibles.length)];
+    return CATALOGO_PERSONAJES[id];
+  }
+
+  function revisarDesbloqueos() {
+    const nuevos = [];
+    let indice = perfil.recompensasEntregadas.length;
+
+    while (true) {
+      const umbral = umbralAcumuladoDesbloqueo(indice);
+      if ((perfil.puntosTotales || 0) < umbral) break;
+      if (perfil.recompensasEntregadas.includes(umbral)) {
+        indice++;
+        continue;
+      }
+      const gato = elegirGatoAleatorio();
+      if (!gato) break;
+      perfil.personajesDesbloqueados.push(gato.id);
+      perfil.personajeActivo = gato.id;
+      perfil.recompensasEntregadas.push(umbral);
+      nuevos.push(gato);
+      indice++;
+    }
+
+    if (nuevos.length) guardarPerfil();
+    return nuevos;
+  }
+
+  async function animarPuntoUno(origenEl) {
+    const capa = document.getElementById('capa-animacion-puntos');
+    const destino = document.getElementById('contador-puntos-global') ||
+      document.getElementById('numero-puntos-global');
+    if (!capa || !destino) return;
+
+    const destRect = destino.getBoundingClientRect();
+    let startX = window.innerWidth / 2;
+    let startY = window.innerHeight / 2;
+    if (origenEl && origenEl.getBoundingClientRect) {
+      const r = origenEl.getBoundingClientRect();
+      startX = r.left + r.width / 2;
+      startY = r.top + r.height / 2;
+    }
+
+    const el = document.createElement('div');
+    el.className = 'anim-punto-vuelo';
+    el.innerHTML = `<img src="${IMG_PUNTO}" alt="">+1`;
+    el.style.left = startX + 'px';
+    el.style.top = startY + 'px';
+    capa.appendChild(el);
+
+    const endX = destRect.left + destRect.width / 2;
+    const endY = destRect.top + destRect.height / 2;
+
+    await el.animate([
+      { transform: 'translate(-50%, -50%) scale(0.5)', opacity: 0 },
+      { transform: 'translate(-50%, -50%) scale(1.15)', opacity: 1, offset: 0.2 },
+      { transform: `translate(${endX - startX - 20}px, ${endY - startY - 10}px) scale(0.85)`, opacity: 0.9, offset: 0.85 },
+      { transform: `translate(${endX - startX}px, ${endY - startY}px) scale(0.4)`, opacity: 0 }
+    ], { duration: 750, easing: 'cubic-bezier(0.34, 1.2, 0.64, 1)', fill: 'forwards' }).finished;
+
+    el.remove();
+  }
+
+  async function animarPuntosGanados(cantidad, origenEl) {
+    const veces = Math.min(cantidad, 10);
+    for (let i = 0; i < veces; i++) {
+      await animarPuntoUno(origenEl);
+      if (veces > 1 && i < veces - 1) await sleep(120);
+    }
+    if (cantidad > 10) await sleep(300);
+  }
+
+  function mostrarModalNuevoPersonaje(gato) {
+    return new Promise(resolve => {
+      const modal = document.getElementById('modal-nuevo-personaje');
+      const img = document.getElementById('modal-nuevo-gato-img');
+      const nombre = document.getElementById('modal-nuevo-gato-nombre');
+      const btn = document.getElementById('btn-cerrar-nuevo-personaje');
+      if (!modal || !img || !nombre || !btn) {
+        resolve();
+        return;
+      }
+      img.src = gato.img;
+      img.alt = gato.nombre;
+      nombre.textContent = gato.nombre;
+      modal.showModal();
+      const cerrar = () => {
+        modal.close();
+        btn.removeEventListener('click', cerrar);
+        resolve();
+      };
+      btn.addEventListener('click', cerrar);
+    });
+  }
+
+  async function addPoints(cantidad, opciones = {}) {
+    if (!cantidad || cantidad < 1) return;
+    const { animar = true, origen = null } = opciones;
+
+    perfil.puntosTotales = (perfil.puntosTotales || 0) + cantidad;
+    guardarPerfil();
+    actualizarBarraPuntos();
+
+    if (animar) {
+      await animarPuntosGanados(cantidad, origen);
+    }
+
+    const desbloqueos = revisarDesbloqueos();
+    for (const gato of desbloqueos) {
+      aplicarPersonajeActivo();
+      await mostrarModalNuevoPersonaje(gato);
+    }
+  }
+
+  function renderPersonajesGrid() {
+    const grid = document.getElementById('personajes-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    perfil.personajesDesbloqueados.forEach(id => {
+      const p = obtenerPersonaje(id);
+      const tarjeta = document.createElement('div');
+      tarjeta.className = 'personaje-tarjeta' + (perfil.personajeActivo === id ? ' activo' : '');
+
+      const img = crearImg(p.img, p.nombre);
+      const nom = document.createElement('span');
+      nom.className = 'personaje-tarjeta-nombre';
+      nom.textContent = p.nombre;
+
+      const estadoLbl = document.createElement('span');
+      estadoLbl.className = 'personaje-tarjeta-estado';
+
+      if (perfil.personajeActivo === id) {
+        estadoLbl.textContent = 'Usando';
+      } else {
+        const btnSel = document.createElement('button');
+        btnSel.type = 'button';
+        btnSel.className = 'btn btn-secundario';
+        btnSel.textContent = 'Seleccionar';
+        btnSel.onclick = () => {
+          perfil.personajeActivo = id;
+          guardarPerfil();
+          aplicarPersonajeActivo();
+          renderPersonajesGrid();
+        };
+        tarjeta.appendChild(img);
+        tarjeta.appendChild(nom);
+        tarjeta.appendChild(btnSel);
+        grid.appendChild(tarjeta);
+        return;
+      }
+
+      tarjeta.appendChild(img);
+      tarjeta.appendChild(nom);
+      tarjeta.appendChild(estadoLbl);
+      grid.appendChild(tarjeta);
+    });
+  }
+
+  function actualizarModalProgreso() {
+    persistirJugadorActivo();
+    guardarRegistro();
+
+    const cuerpo = document.getElementById('progreso-tabla-cuerpo');
+    const vacio = document.getElementById('progreso-sin-datos');
+    if (!cuerpo) return;
+
+    cuerpo.innerHTML = '';
+    const jugadoresOrdenados = [...registro.jugadores].sort((a, b) =>
+      a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
+    );
+
+    if (!jugadoresOrdenados.length) {
+      if (vacio) vacio.classList.remove('oculto');
+      return;
+    }
+
+    if (vacio) vacio.classList.add('oculto');
+
+    jugadoresOrdenados.forEach(jugador => {
+      const fila = document.createElement('tr');
+      if (jugador.nombreKey === jugadorActivoKey) {
+        fila.classList.add('progreso-fila-activa');
+      }
+
+      const celdaNombre = document.createElement('td');
+      celdaNombre.textContent = jugador.nombre;
+      celdaNombre.dataset.label = 'Nombre';
+
+      const celdaGatos = document.createElement('td');
+      celdaGatos.dataset.label = 'Gatos coleccionados';
+      const gatos = (jugador.personajesDesbloqueados || [])
+        .map(id => obtenerPersonaje(id).nombre)
+        .join(', ');
+      celdaGatos.textContent = gatos || '—';
+
+      const celdaPuntos = document.createElement('td');
+      celdaPuntos.textContent = String(jugador.puntosTotales || 0);
+      celdaPuntos.dataset.label = 'Puntos acumulados';
+
+      fila.appendChild(celdaNombre);
+      fila.appendChild(celdaGatos);
+      fila.appendChild(celdaPuntos);
+      cuerpo.appendChild(fila);
+    });
+  }
+
+  function solicitarNombreExplorador() {
+    const modal = document.getElementById('modal-perfil-inicial');
+    const input = document.getElementById('input-nombre-jugador');
+    const btn = document.getElementById('btn-guardar-perfil');
+    if (!modal || !input || !btn) return Promise.resolve(false);
+
+    return new Promise(resolve => {
+      input.value = '';
+      modal.showModal();
+      input.focus();
+
+      const guardar = () => {
+        const nombre = input.value.trim();
+        if (!nombre) {
+          input.focus();
+          return;
+        }
+        activarJugador(nombre);
+        modal.close();
+        btn.removeEventListener('click', guardar);
+        input.removeEventListener('keypress', onEnter);
+        resolve(true);
+      };
+
+      const onEnter = (e) => {
+        if (e.key === 'Enter') guardar();
+      };
+
+      btn.addEventListener('click', guardar);
+      input.addEventListener('keypress', onEnter);
+    });
+  }
+
+  function verificarPerfilInicial() {
+    if (!registro.solicitarNombreAlComenzar && jugadorActivoKey && perfil.nombre) {
+      return Promise.resolve(true);
+    }
+    return solicitarNombreExplorador();
+  }
 
   /* Estado temporal de misiones activas */
   let dadoMeta = 15;
@@ -82,7 +611,7 @@
   let ruletaMinimo = 5;
   let bolsaIntentos = 0;
   let bolsaMinimoGrafico = 8;
-  const RULETA_MAX_INTENTOS = 5;
+  const RULETA_ACIERTOS_REQUERIDOS = 3;
   let cajasAbiertas = 0;
   let cajasMinimo = 3;
 
@@ -99,7 +628,8 @@
   }
 
   function guardarEstado() {
-    localStorage.setItem(CLAVE_GUARDADO, JSON.stringify(estado));
+    persistirJugadorActivo();
+    guardarRegistro();
   }
 
   function mensajeAleatorio(lista) {
@@ -110,6 +640,7 @@
     document.querySelectorAll('.pantalla').forEach(p => p.classList.remove('activa'));
     const pantalla = document.getElementById('pantalla-' + id);
     if (pantalla) pantalla.classList.add('activa');
+    actualizarVisibilidadHud();
   }
 
   function sleep(ms) {
@@ -359,6 +890,7 @@
   }
 
   function inicializarMision(id) {
+    aplicarPersonajeActivo();
     switch (id) {
       case 'dado':   initMisionDado(); break;
       case 'cajas':  initMisionCajas(); break;
@@ -400,12 +932,9 @@
     let lanzando = false;
     let totalLanzamientos = estado.dadoLanzamientos || 0;
     let aciertos = estado.dadoAciertos || 0;
-    let monedas = estado.monedasDado || 0;
 
-    // Actualizar contador de monedas
-    if (contadorMonedas) {
-      contadorMonedas.textContent = monedas;
-    }
+    actualizarBarraPuntos();
+    aplicarPersonajeActivo();
 
     /* Construir sendero visual con SOLO números */
     sendero.innerHTML = '';
@@ -499,20 +1028,11 @@
       const predictionCorrecta = (prediccion === resultado);
       if (predictionCorrecta) {
         aciertos++;
-        monedas++;
-        animacionMoneda.classList.remove('oculto');
-        setTimeout(() => animacionMoneda.classList.add('oculto'), 2000);
-        if (contadorMonedas) {
-          contadorMonedas.textContent = monedas;
-          contadorMonedas.parentElement.style.animation = 'none';
-          void contadorMonedas.parentElement.offsetWidth;
-          contadorMonedas.parentElement.style.animation = 'pulsoBoton 0.5s ease';
-        }
+        await addPoints(1, { origen: dado });
       }
 
       estado.dadoLanzamientos = totalLanzamientos;
       estado.dadoAciertos = aciertos;
-      estado.monedasDado = monedas;
 
       prediccionResultado.classList.remove('oculto');
       resultadoDadoNum.textContent = resultado;
@@ -657,7 +1177,7 @@
 
     /* ── Sincronizar contador de monedas ────────────────────── */
     function sincronizarContador() {
-      if (cntMonedas) cntMonedas.textContent = estado.monedasDado;
+      actualizarBarraPuntos();
     }
     sincronizarContador();
 
@@ -814,15 +1334,7 @@
         if (acerto) {
           cajaSt.predicciones[idxOp].hasAwardedPoints = true;
           cajaSt.completedPredictions++;
-          estado.monedasDado++;
-          sincronizarContador();
-          animMoneda.classList.remove('oculto');
-          setTimeout(() => animMoneda.classList.add('oculto'), 2000);
-          if (cntMonedas) {
-            cntMonedas.parentElement.style.animation = 'none';
-            void cntMonedas.parentElement.offsetWidth;
-            cntMonedas.parentElement.style.animation = 'pulsoBoton 0.5s ease';
-          }
+          await addPoints(1, { origen: btnAbrir });
         } else {
           cajaSt.pendingRetries.push(idxOp);
         }
@@ -975,6 +1487,7 @@
 
   const MUESTRAS_BOLSA_MAX = 5;
   const PUNTOS_BOLSA_ACIERTO = 10;
+  const OPORTUNIDADES_PUNTOS_BOLSA = 3;
 
   function crearEstadoBolsaNuevo() {
     const idx = Math.floor(Math.random() * COMPOSICIONES_BOLSA.length);
@@ -994,7 +1507,8 @@
       predictionLocked: false,
       rewardGranted: false,
       missionCompleted: false,
-      isCorrect: null
+      isCorrect: null,
+      failedAttempts: 0
     };
   }
 
@@ -1064,7 +1578,15 @@
     const panelResultado = document.getElementById('bolsa-resultado-panel');
     const opcionesPrediccion = document.getElementById('bolsa-opciones-prediccion');
     const btnConfirmar = document.getElementById('btn-bolsa-confirmar');
+    const btnReintentar = document.getElementById('btn-bolsa-reintentar');
     const btnContinuar = document.getElementById('btn-bolsa-continuar');
+    const avisoPrediccion = document.getElementById('bolsa-aviso-prediccion');
+    const modalBolsa = document.getElementById('modal-resultado-bolsa');
+    const modalBolsaGato = document.getElementById('modal-bolsa-gato');
+    const modalBolsaTitulo = document.getElementById('modal-bolsa-titulo');
+    const modalBolsaComposicion = document.getElementById('modal-bolsa-composicion');
+    const modalBolsaMensaje = document.getElementById('modal-bolsa-mensaje');
+    const btnCerrarModalBolsa = document.getElementById('btn-cerrar-modal-bolsa');
     const barraAzul = document.getElementById('barra-azul');
     const barraPlata = document.getElementById('barra-roja');
     const numAzul = document.getElementById('num-azul');
@@ -1087,6 +1609,7 @@
     }
 
     const sb = estado.estadoBolsa;
+    if (typeof sb.failedAttempts !== 'number') sb.failedAttempts = 0;
     const compGuardada = COMPOSICIONES_BOLSA.find(c => c.id === sb.selectedCompositionId);
     if (compGuardada) {
       sb.actualBlueCount = compGuardada.blueCount;
@@ -1100,6 +1623,117 @@
 
     function guardarBolsa() {
       guardarEstado();
+    }
+
+    function oportunidadesPuntosRestantes() {
+      return Math.max(0, OPORTUNIDADES_PUNTOS_BOLSA - sb.failedAttempts);
+    }
+
+    function puedeGanarPuntosBolsa() {
+      return sb.isCorrect && oportunidadesPuntosRestantes() > 0 && !sb.rewardGranted;
+    }
+
+    function actualizarAvisoPrediccion() {
+      if (!avisoPrediccion) return;
+      const restantes = oportunidadesPuntosRestantes();
+      if (restantes > 0) {
+        avisoPrediccion.textContent =
+          `Tienes ${restantes} oportunidad${restantes === 1 ? '' : 'es'} para ganar ${PUNTOS_BOLSA_ACIERTO} puntos. Debes acertar para avanzar.`;
+      } else {
+        avisoPrediccion.textContent =
+          'Ya no puedes ganar puntos extra. Debes acertar para continuar al siguiente reto.';
+      }
+    }
+
+    function asignarNuevaComposicionBolsa(excluirId) {
+      let opciones = COMPOSICIONES_BOLSA;
+      if (excluirId !== undefined && opciones.length > 1) {
+        opciones = opciones.filter(c => c.id !== excluirId);
+      }
+      const comp = opciones[Math.floor(Math.random() * opciones.length)];
+      sb.selectedCompositionId = comp.id;
+      sb.actualBlueCount = comp.blueCount;
+      sb.actualSilverCount = comp.silverCount;
+      sb.blueProbability = comp.blueProbability;
+      sb.silverProbability = comp.silverProbability;
+    }
+
+    function prepararNuevoIntento() {
+      const composicionAnterior = sb.selectedCompositionId;
+      asignarNuevaComposicionBolsa(composicionAnterior);
+
+      sb.gamePhase = 'sampling';
+      sb.sampleDraws = 0;
+      sb.sampleBlueCount = 0;
+      sb.sampleSilverCount = 0;
+      sb.sampleHistory = [];
+      sb.selectedPrediction = null;
+      sb.predictionLocked = false;
+      sb.isCorrect = null;
+      prediccionSeleccionada = null;
+
+      panelResultado.classList.add('oculto');
+      panelRevelacion.classList.add('oculto');
+      panelPrediccion.classList.add('oculto');
+      if (btnReintentar) btnReintentar.classList.add('oculto');
+      fichasAzul.innerHTML = '';
+      fichasPlata.innerHTML = '';
+      revelAzulCount.textContent = '0';
+      revelPlataCount.textContent = '0';
+      ficha.innerHTML = '';
+      grafico.classList.add('oculto');
+
+      actualizarContadorMuestras();
+      actualizarPanelMuestras();
+      actualizarAvisoPrediccion();
+
+      narracion.textContent = '¡Toca la bolsa y descubre qué hay dentro!';
+      mensaje.textContent = 'Toca la bolsa para observar cinco fichas de muestra.';
+      setBolsaInteractiva(true);
+      bolsa.onclick = sacarMuestra;
+
+      guardarBolsa();
+    }
+
+    function mostrarModalBolsa(ganaPuntosEsteIntento) {
+      return new Promise(resolve => {
+        modalBolsaComposicion.innerHTML = '';
+        modalBolsaComposicion.appendChild(
+          crearFilaProporcionBolsa(sb.blueProbability, sb.silverProbability)
+        );
+
+        if (sb.isCorrect) {
+          modalBolsaGato.src = 'img/personajes/michi-celebrando.png';
+          modalBolsaGato.alt = 'Michi celebrando';
+          modalBolsaTitulo.textContent = '¡Predicción correcta!';
+          modalBolsaMensaje.textContent = ganaPuntosEsteIntento
+            ? '¡Pasaste a la siguiente ronda!'
+            : '¡Pasaste a la siguiente ronda! Ya no podías ganar los 10 puntos extra.';
+          modalBolsa.className = 'modal modal-resultado-bolsa modal-acierto';
+        } else {
+          modalBolsaGato.src = 'img/personajes/gato_desagrado.png';
+          modalBolsaGato.alt = 'Michi triste';
+          modalBolsaTitulo.textContent = 'Esta vez no fue';
+          const restantes = oportunidadesPuntosRestantes();
+          if (restantes > 0) {
+            modalBolsaMensaje.textContent =
+              `Te quedan ${restantes} oportunidad${restantes === 1 ? '' : 'es'} para ganar ${PUNTOS_BOLSA_ACIERTO} puntos. Debes acertar para avanzar.`;
+          } else {
+            modalBolsaMensaje.textContent =
+              `Ya no puedes ganar los ${PUNTOS_BOLSA_ACIERTO} puntos. Debes acertar para continuar al siguiente reto.`;
+          }
+          modalBolsa.className = 'modal modal-resultado-bolsa modal-fallo';
+        }
+
+        modalBolsa.showModal();
+
+        const cerrar = () => {
+          modalBolsa.close();
+          btnCerrarModalBolsa.removeEventListener('click', cerrar);
+          resolve();
+        };
+        btnCerrarModalBolsa.addEventListener('click', cerrar);
+      });
     }
 
     function actualizarContadorMuestras() {
@@ -1166,6 +1800,7 @@
       mensaje.textContent =
         'Según las fichas que observaste, ¿cuál crees que es la composición real de la bolsa?';
       panelPrediccion.classList.remove('oculto');
+      actualizarAvisoPrediccion();
       renderOpcionesPrediccion();
       guardarBolsa();
     }
@@ -1294,20 +1929,13 @@
     }
 
     function otorgarPuntosBolsa() {
-      if (sb.rewardGranted || !sb.isCorrect) return;
+      if (!puedeGanarPuntosBolsa()) return Promise.resolve();
       sb.rewardGranted = true;
-      estado.monedasDado = (estado.monedasDado || 0) + PUNTOS_BOLSA_ACIERTO;
       guardarBolsa();
-
-      if (animPuntos) {
-        animPuntos.classList.remove('oculto');
-        setTimeout(() => animPuntos.classList.add('oculto'), 2500);
-      }
-
       const rect = bolsa.getBoundingClientRect();
-      crearParticulas(rect.left + rect.width / 2, rect.top + rect.height / 2, 'var(--dorado-brillo)');
       crearEstrellasBolsa();
       destello(bolsa);
+      return addPoints(PUNTOS_BOLSA_ACIERTO, { origen: bolsa });
     }
 
     function finalizarMisionBolsa() {
@@ -1321,85 +1949,53 @@
 
     async function mostrarResultado(animarExtras) {
       sb.gamePhase = 'result';
-      const compElegida = COMPOSICIONES_BOLSA.find(c => c.id === sb.selectedPrediction);
 
       panelResultado.classList.remove('oculto');
       resultadoTexto.innerHTML = '';
       explicacionEducativa.innerHTML = '';
       explicacionEducativa.classList.add('oculto');
+      if (btnReintentar) btnReintentar.classList.add('oculto');
+      btnContinuar.classList.add('oculto');
 
       if (sb.isCorrect) {
         const titulo = document.createElement('h4');
         titulo.textContent = '¡Predicción correcta!';
         resultadoTexto.appendChild(titulo);
-
-        const subtitulo = document.createElement('p');
-        subtitulo.className = 'bolsa-resultado-subtitulo';
-        subtitulo.textContent = 'La bolsa tenía:';
-        resultadoTexto.appendChild(subtitulo);
-
         resultadoTexto.appendChild(
           crearFilaProporcionBolsa(sb.blueProbability, sb.silverProbability)
         );
-
-        const puntos = document.createElement('p');
-        puntos.className = 'bolsa-resultado-puntos';
-        puntos.textContent = `⭐ Ganaste ${PUNTOS_BOLSA_ACIERTO} puntos`;
-        resultadoTexto.appendChild(puntos);
-
-        const frase = document.createElement('p');
-        frase.className = 'bolsa-resultado-frase';
-        frase.textContent = 'Tu predicción coincidió con la composición real de la bolsa.';
-        resultadoTexto.appendChild(frase);
-
         narracion.textContent = '¡Excelente predicción!';
         mensaje.textContent = '';
-        if (!sb.rewardGranted) {
-          if (animarExtras) otorgarPuntosBolsa();
-          else {
+
+        const ganaPuntosEsteIntento = !sb.rewardGranted && oportunidadesPuntosRestantes() > 0;
+        if (ganaPuntosEsteIntento) {
+          if (animarExtras) {
+            await otorgarPuntosBolsa();
+          } else {
             sb.rewardGranted = true;
-            estado.monedasDado = (estado.monedasDado || 0) + PUNTOS_BOLSA_ACIERTO;
             guardarBolsa();
+            await addPoints(PUNTOS_BOLSA_ACIERTO, { animar: false });
           }
         }
-      } else if (compElegida) {
-        const titulo = document.createElement('h4');
-        titulo.textContent = 'Esta vez tu predicción no fue correcta.';
-        resultadoTexto.appendChild(titulo);
 
-        const subtitulo = document.createElement('p');
-        subtitulo.className = 'bolsa-resultado-subtitulo';
-        subtitulo.textContent = 'La bolsa tenía:';
-        resultadoTexto.appendChild(subtitulo);
-
-        resultadoTexto.appendChild(
-          crearFilaProporcionBolsa(sb.blueProbability, sb.silverProbability)
-        );
-
-        const frase = document.createElement('p');
-        frase.className = 'bolsa-resultado-frase';
-        frase.textContent = 'Una muestra pequeña no siempre muestra la proporción real.';
-        resultadoTexto.appendChild(frase);
-
-        narracion.textContent = 'Sigue observando y aprendiendo.';
-        mensaje.textContent = '';
-      } else {
-        const titulo = document.createElement('h4');
-        titulo.textContent = 'Misión completada';
-        resultadoTexto.appendChild(titulo);
-
-        const subtitulo = document.createElement('p');
-        subtitulo.className = 'bolsa-resultado-subtitulo';
-        subtitulo.textContent = 'La bolsa tenía:';
-        resultadoTexto.appendChild(subtitulo);
-
-        resultadoTexto.appendChild(
-          crearFilaProporcionBolsa(sb.blueProbability, sb.silverProbability)
-        );
+        guardarBolsa();
+        await mostrarModalBolsa(ganaPuntosEsteIntento);
+        finalizarMisionBolsa();
+        return;
       }
 
+      const titulo = document.createElement('h4');
+      titulo.textContent = 'Esta vez tu predicción no fue correcta.';
+      resultadoTexto.appendChild(titulo);
+      resultadoTexto.appendChild(
+        crearFilaProporcionBolsa(sb.blueProbability, sb.silverProbability)
+      );
+      narracion.textContent = 'Sigue observando y aprendiendo.';
+      mensaje.textContent = '';
+
       guardarBolsa();
-      finalizarMisionBolsa();
+      await mostrarModalBolsa(false);
+      if (btnReintentar) btnReintentar.classList.remove('oculto');
     }
 
     async function confirmarPrediccion() {
@@ -1408,6 +2004,9 @@
       sb.predictionLocked = true;
       sb.selectedPrediction = prediccionSeleccionada;
       sb.isCorrect = prediccionSeleccionada === sb.selectedCompositionId;
+      if (!sb.isCorrect) {
+        sb.failedAttempts = (sb.failedAttempts || 0) + 1;
+      }
       btnConfirmar.disabled = true;
       renderOpcionesPrediccion();
       guardarBolsa();
@@ -1418,6 +2017,7 @@
 
     function restaurarFase() {
       btnContinuar.classList.add('oculto');
+      if (btnReintentar) btnReintentar.classList.add('oculto');
       animPuntos.classList.add('oculto');
       panelPrediccion.classList.add('oculto');
       panelRevelacion.classList.add('oculto');
@@ -1445,6 +2045,7 @@
         mensaje.textContent =
           'Según las fichas que observaste, ¿cuál crees que es la composición real de la bolsa?';
         panelPrediccion.classList.remove('oculto');
+        actualizarAvisoPrediccion();
         renderOpcionesPrediccion();
         return;
       }
@@ -1467,11 +2068,30 @@
         }
         revelAzulCount.textContent = String(sb.actualBlueCount);
         revelPlataCount.textContent = String(sb.actualSilverCount);
-        mostrarResultado(false);
+
+        if (sb.missionCompleted) {
+          panelResultado.classList.remove('oculto');
+          resultadoTexto.innerHTML = '';
+          const titulo = document.createElement('h4');
+          titulo.textContent = '¡Predicción correcta!';
+          resultadoTexto.appendChild(titulo);
+          resultadoTexto.appendChild(
+            crearFilaProporcionBolsa(sb.blueProbability, sb.silverProbability)
+          );
+          btnContinuar.classList.remove('oculto');
+          return;
+        }
+
+        mostrarResultado(false).then(() => {
+          if (!sb.missionCompleted && !sb.isCorrect && btnReintentar) {
+            btnReintentar.classList.remove('oculto');
+          }
+        });
       }
     }
 
     btnConfirmar.onclick = confirmarPrediccion;
+    if (btnReintentar) btnReintentar.onclick = prepararNuevoIntento;
     restaurarFase();
   }
 
@@ -1587,6 +2207,7 @@
     const btnGirar = document.getElementById('btn-girar-ruleta');
     const btnSiguiente = document.getElementById('btn-ruleta-siguiente');
     const btnContinuar = document.getElementById('btn-ruleta-continuar');
+    const btnReintentar = document.getElementById('btn-ruleta-reintentar');
     const contadorIntentos = document.getElementById('ruleta-contador-intentos');
     const michiMensaje = document.getElementById('ruleta-michi-mensaje');
     const panelPrediccion = document.getElementById('ruleta-panel-prediccion');
@@ -1606,7 +2227,9 @@
     const premioEspecial = document.getElementById('ruleta-premio-especial');
     const michiCelebracion = document.getElementById('ruleta-michi-celebracion');
     const esperaEl = document.getElementById('ruleta-espera');
+    const michiImg = document.getElementById('ruleta-michi-img');
     const cntMonedas = document.getElementById('numero-monedas-ruleta');
+    const resumenTitulo = panelResumen ? panelResumen.querySelector('.ruleta-resumen-titulo') : null;
     const zonaRuleta = document.getElementById('imagenRuleta');
 
     if (!estado.resultadosRuleta) estado.resultadosRuleta = [];
@@ -1615,10 +2238,14 @@
     let prediccionSeleccionada = null;
     let girando = false;
 
-    function sincronizarMonedas() {
-      if (cntMonedas) cntMonedas.textContent = estado.monedasDado || 0;
+    function restaurarMichiRuleta() {
+      if (!michiImg) return;
+      michiImg.src = obtenerImgPersonajeActivo();
+      michiImg.alt = obtenerPersonaje(perfil.personajeActivo).nombre;
     }
-    sincronizarMonedas();
+
+    actualizarBarraPuntos();
+    restaurarMichiRuleta();
 
     function renderProbabilidades() {
       if (!probBarras || !espaciosVisual) return;
@@ -1692,8 +2319,96 @@
 
     function actualizarContador() {
       if (contadorIntentos) {
-        contadorIntentos.textContent = `Intentos: ${intentosRealizados}/${RULETA_MAX_INTENTOS}`;
+        contadorIntentos.textContent =
+          `Aciertos: ${contarAciertos()}/${RULETA_ACIERTOS_REQUERIDOS}`;
       }
+    }
+
+    function crearItemPremioModal(premio) {
+      const item = document.createElement('div');
+      item.className = 'ruleta-modal-premio';
+      item.appendChild(crearImg(premio.img, premio.label));
+      const texto = document.createElement('span');
+      texto.textContent = premio.label;
+      item.appendChild(texto);
+      return item;
+    }
+
+    function mostrarModalRuleta(acerto, resultadoPremio, predPremio) {
+      return new Promise(resolve => {
+        const modal = document.getElementById('modal-resultado-ruleta');
+        const gato = document.getElementById('modal-ruleta-gato');
+        const titulo = document.getElementById('modal-ruleta-titulo');
+        const comparacionEl = document.getElementById('modal-ruleta-comparacion');
+        const mensajeEl = document.getElementById('modal-ruleta-mensaje');
+        const btn = document.getElementById('btn-cerrar-modal-ruleta');
+
+        if (!modal || !gato || !titulo || !comparacionEl || !mensajeEl || !btn) {
+          resolve();
+          return;
+        }
+
+        gato.src = acerto
+          ? 'img/personajes/michi-celebrando.png'
+          : 'img/personajes/gato_desagrado.png';
+        gato.alt = acerto ? 'Michi celebrando' : 'Michi triste';
+        modal.className = acerto
+          ? 'modal modal-resultado-bolsa modal-acierto'
+          : 'modal modal-resultado-bolsa modal-fallo';
+        titulo.textContent = acerto ? '¡Predicción correcta!' : 'Esta vez no fue';
+
+        comparacionEl.innerHTML = '';
+        const grid = document.createElement('div');
+        grid.className = 'ruleta-modal-grid';
+
+        const colReal = document.createElement('div');
+        colReal.className = 'ruleta-modal-col';
+        const lblReal = document.createElement('p');
+        lblReal.textContent = 'La ruleta eligió:';
+        colReal.appendChild(lblReal);
+        colReal.appendChild(crearItemPremioModal(resultadoPremio));
+
+        const colPred = document.createElement('div');
+        colPred.className = 'ruleta-modal-col';
+        const lblPred = document.createElement('p');
+        lblPred.textContent = 'Tu predicción fue:';
+        colPred.appendChild(lblPred);
+        colPred.appendChild(crearItemPremioModal(predPremio));
+
+        grid.appendChild(colReal);
+        grid.appendChild(colPred);
+        comparacionEl.appendChild(grid);
+
+        const aciertosActuales = contarAciertos();
+        if (acerto && aciertosActuales >= RULETA_ACIERTOS_REQUERIDOS) {
+          mensajeEl.textContent = '¡Ya tienes 3 aciertos! Puedes ir al tesoro.';
+        } else if (acerto) {
+          mensajeEl.textContent = `¡Lo adivinaste! Te faltan ${RULETA_ACIERTOS_REQUERIDOS - aciertosActuales} acierto${RULETA_ACIERTOS_REQUERIDOS - aciertosActuales === 1 ? '' : 's'} para avanzar.`;
+        } else {
+          mensajeEl.textContent = 'Sigue intentando. Observa las probabilidades de cada premio.';
+        }
+
+        modal.showModal();
+
+        const cerrar = () => {
+          modal.close();
+          btn.removeEventListener('click', cerrar);
+          resolve();
+        };
+        btn.addEventListener('click', cerrar);
+      });
+    }
+
+    function finalizarRuletaCompletada() {
+      panelPrediccion.classList.add('oculto');
+      panelProb.classList.add('oculto');
+      panelResultado.classList.add('oculto');
+      btnGirar.classList.add('oculto');
+      if (btnSiguiente) btnSiguiente.classList.add('oculto');
+      if (btnReintentar) btnReintentar.classList.add('oculto');
+      btnContinuar.classList.remove('oculto');
+      mensaje.textContent = '¡Desafío superado! El tesoro te espera.';
+      michiMensaje.textContent = '¡Increíble! Aprendiste que la probabilidad guía nuestras expectativas.';
     }
 
     function resetFasePrediccion() {
@@ -1709,9 +2424,10 @@
         b.classList.remove('seleccionada');
         b.disabled = false;
       });
+      restaurarMichiRuleta();
       actualizarContador();
-      mensaje.textContent = intentosRealizados > 0
-        ? `Intento ${intentosRealizados + 1} de ${RULETA_MAX_INTENTOS}. Elige tu predicción.`
+      mensaje.textContent = contarAciertos() >= RULETA_ACIERTOS_REQUERIDOS
+        ? '¡Misión completada!'
         : 'Selecciona tu predicción para poder girar.';
     }
 
@@ -1727,68 +2443,6 @@
       return estado.resultadosRuleta.filter(r => r.acerto).length;
     }
 
-    function contarResultadosPorTipo() {
-      const conteo = { moneda: 0, llave: 0, piedra: 0, pista: 0 };
-      estado.resultadosRuleta.forEach(r => {
-        if (conteo[r.tipo] !== undefined) conteo[r.tipo]++;
-      });
-      return conteo;
-    }
-
-    function mostrarResumenFinal() {
-      panelPrediccion.classList.add('oculto');
-      panelProb.classList.add('oculto');
-      panelResultado.classList.add('oculto');
-      zonaRuleta.classList.add('oculto');
-      btnGirar.classList.add('oculto');
-      btnSiguiente.classList.add('oculto');
-      panelResumen.classList.remove('oculto');
-      btnContinuar.classList.remove('oculto');
-
-      const aciertos = contarAciertos();
-      resumenAciertos.textContent = `Tus predicciones correctas: ${aciertos}/${RULETA_MAX_INTENTOS}`;
-
-      resumenResultados.innerHTML = '<p style="text-align:center;margin:0 0 0.5rem;font-weight:700;color:var(--dorado-claro)">Resultados obtenidos:</p>';
-      const conteo = contarResultadosPorTipo();
-      RULETA_PREMIOS.forEach(p => {
-        const fila = document.createElement('div');
-        fila.className = 'ruleta-resumen-fila';
-        fila.appendChild(crearImg(p.img, p.label));
-        fila.appendChild(document.createTextNode(`${p.label}: ${conteo[p.tipo]} ${conteo[p.tipo] === 1 ? 'vez' : 'veces'}`));
-        resumenResultados.appendChild(fila);
-      });
-
-      let bonusTotal = 0;
-      let textoBonus = '';
-      if (aciertos >= 1) {
-        bonusTotal += 10;
-        textoBonus = '+10 puntos por tu primer acierto';
-      }
-      if (aciertos >= 3) {
-        bonusTotal += 30;
-        textoBonus = '+40 puntos extra por 3 o más aciertos';
-      }
-      if (bonusTotal > 0 && !estado.ruletaBonusEntregado) {
-        estado.monedasDado = (estado.monedasDado || 0) + bonusTotal;
-        estado.ruletaBonusEntregado = true;
-        guardarEstado();
-        sincronizarMonedas();
-        resumenBonus.textContent = `Bonificación final: ${textoBonus}`;
-        resumenBonus.classList.remove('oculto');
-      } else if (bonusTotal > 0 && estado.ruletaBonusEntregado) {
-        resumenBonus.textContent = `Bonificación final ya obtenida: ${textoBonus}`;
-        resumenBonus.classList.remove('oculto');
-      }
-
-      if (aciertos >= RULETA_MAX_INTENTOS) {
-        premioEspecial.classList.remove('oculto');
-        michiCelebracion.classList.remove('oculto');
-      }
-
-      mensaje.textContent = '¡Desafío final superado! El tesoro te espera.';
-      michiMensaje.textContent = '¡Increíble! Aprendiste que la probabilidad guía nuestras expectativas, pero el azar siempre sorprende.';
-    }
-
     /* Inicializar UI estática */
     renderProbabilidades();
     renderOpcionesPrediccion();
@@ -1800,14 +2454,11 @@
 
     btnContinuar.classList.add('oculto');
     panelResumen.classList.add('oculto');
-    premioEspecial.classList.add('oculto');
-    michiCelebracion.classList.add('oculto');
-    resumenBonus.classList.add('oculto');
     zonaRuleta.classList.remove('oculto');
 
-    if (intentosRealizados >= RULETA_MAX_INTENTOS) {
+    if (misionCompletada('ruleta') || contarAciertos() >= RULETA_ACIERTOS_REQUERIDOS) {
       if (!misionCompletada('ruleta')) completarMision('ruleta');
-      mostrarResumenFinal();
+      finalizarRuletaCompletada();
       return;
     }
 
@@ -1815,16 +2466,14 @@
 
     btnGirar.onclick = async () => {
       if (girando || !prediccionSeleccionada) return;
-      if (intentosRealizados >= RULETA_MAX_INTENTOS) return;
+      if (contarAciertos() >= RULETA_ACIERTOS_REQUERIDOS) return;
 
       girando = true;
       btnGirar.disabled = true;
       opcionesPrediccion.querySelectorAll('.ruleta-opcion-btn').forEach(b => { b.disabled = true; });
       panelResultado.classList.add('oculto');
-      puntosGanados.classList.add('oculto');
 
-      const intentoNum = intentosRealizados + 1;
-      mensaje.textContent = `Intento ${intentoNum}/${RULETA_MAX_INTENTOS} — ¡La ruleta gira!`;
+      mensaje.textContent = '¡La ruleta gira!';
       michiMensaje.textContent = '¡Veamos si tu predicción coincide con el azar!';
 
       const rect = disco.getBoundingClientRect();
@@ -1879,48 +2528,22 @@
       intentosRealizados++;
       guardarEstado();
 
-      /* Mostrar comparación */
-      panelPrediccion.classList.add('oculto');
-      panelResultado.classList.remove('oculto');
-      renderItemResultado(resultadoReal, resultadoPremio);
-      renderItemResultado(resultadoPrediccion, predPremio);
-
       if (acerto) {
-        comparacion.textContent = '¡Correcto! Tu predicción coincidió con el resultado.';
-        comparacion.className = 'ruleta-comparacion correcto';
-        puntosGanados.textContent = '+1 punto';
-        puntosGanados.classList.remove('oculto');
-        estado.monedasDado = (estado.monedasDado || 0) + 1;
-        guardarEstado();
-        sincronizarMonedas();
         sonidoAciertoRuleta();
-        michiMensaje.textContent = '¡Lo adivinaste! Aunque la probabilidad ayuda, a veces el azar te sonríe.';
-      } else {
-        comparacion.textContent = 'Esta vez no acertaste, pero recuerda que la probabilidad no significa que siempre ocurrirá. ¡Inténtalo nuevamente!';
-        comparacion.className = 'ruleta-comparacion incorrecto';
-        michiMensaje.textContent = 'No te preocupes. Aunque un objeto tenga más probabilidad, no siempre saldrá. ¡Sigue intentando!';
+        await addPoints(1, { origen: zonaRuleta });
       }
 
-      mensaje.textContent = acerto
-        ? `¡Acierto en el intento ${intentoNum}! Observa las probabilidades para el siguiente giro.`
-        : `Intento ${intentoNum} completado. Observa qué objeto tiene más espacios en la ruleta.`;
+      await mostrarModalRuleta(acerto, resultadoPremio, predPremio);
+      actualizarContador();
 
-      btnGirar.classList.add('oculto');
-
-      if (intentosRealizados >= RULETA_MAX_INTENTOS) {
-        completarMision('ruleta');
-        await sleep(1200);
-        mostrarResumenFinal();
+      if (contarAciertos() >= RULETA_ACIERTOS_REQUERIDOS) {
+        if (!misionCompletada('ruleta')) completarMision('ruleta');
+        finalizarRuletaCompletada();
       } else {
-        btnSiguiente.classList.remove('oculto');
+        resetFasePrediccion();
       }
 
       girando = false;
-    };
-
-    btnSiguiente.onclick = () => {
-      btnSiguiente.classList.add('oculto');
-      resetFasePrediccion();
     };
   }
 
@@ -1986,15 +2609,44 @@
     }
   }
 
-  function reiniciarJuego() {
+  function reiniciarPartida() {
+    persistirJugadorActivo();
+
+    if (jugadorActivoKey) {
+      const jugador = registro.jugadores.find(j => j.nombreKey === jugadorActivoKey);
+      if (jugador) {
+        jugador.partida = { ...estadoDefault };
+      }
+    }
+
     estado = { ...estadoDefault };
     estado.estadoCajas = null;
     estado.estadoBolsa = null;
-    guardarEstado();
-    estado.posicionDado = 0;
+
+    registro.jugadorActivo = null;
+    registro.solicitarNombreAlComenzar = true;
+    jugadorActivoKey = null;
+    perfil = { ...perfilDefault };
+
+    guardarRegistro();
     actualizarMapa();
     mostrarPantalla('inicio');
     actualizarIndicadorPartida();
+    actualizarBarraPuntos();
+    aplicarPersonajeActivo();
+  }
+
+  function borrarProgresoTotal() {
+    registro = { ...registroDefault, _migrado: true };
+    guardarRegistro();
+    jugadorActivoKey = null;
+    perfil = { ...perfilDefault };
+    estado = { ...estadoDefault };
+    reiniciarPartida();
+  }
+
+  function reiniciarJuego() {
+    reiniciarPartida();
   }
 
   /* ═══════════════════════════════════════
@@ -2006,10 +2658,11 @@
     const btnComenzar = document.getElementById('btn-comenzar');
     const badgeGuardado = document.getElementById('badge-guardado');
     
-    const hayPartida = estado.misionesCompletadas.length > 0 || 
-                       estado.posicionDado > 0 ||
-                       estado.dadoLanzamientos > 0 ||
-                       estado.monedasDado > 0;
+    const hayPartida = !registro.solicitarNombreAlComenzar &&
+                       jugadorActivoKey &&
+                       (estado.misionesCompletadas.length > 0 ||
+                        estado.posicionDado > 0 ||
+                        estado.dadoLanzamientos > 0);
     
     if (hayPartida && badgeGuardado) {
       badgeGuardado.classList.remove('oculto');
@@ -2022,8 +2675,45 @@
   
   function initEventos() {
     /* Inicio */
-    document.getElementById('btn-comenzar').addEventListener('click', () => {
+    document.getElementById('btn-comenzar').addEventListener('click', async () => {
+      const ok = await verificarPerfilInicial();
+      if (!ok) return;
+      actualizarBarraPuntos();
+      aplicarPersonajeActivo();
+      actualizarIndicadorPartida();
       mostrarPantalla('historia');
+    });
+
+    document.getElementById('btn-mi-progreso').addEventListener('click', () => {
+      actualizarModalProgreso();
+      document.getElementById('modal-mi-progreso').showModal();
+    });
+
+    document.getElementById('btn-cerrar-progreso').addEventListener('click', () => {
+      document.getElementById('modal-mi-progreso').close();
+    });
+
+    document.getElementById('btn-borrar-progreso-total').addEventListener('click', () => {
+      document.getElementById('modal-mi-progreso').close();
+      document.getElementById('modal-borrar-progreso').showModal();
+    });
+
+    document.getElementById('btn-confirmar-borrar-total').addEventListener('click', () => {
+      borrarProgresoTotal();
+      document.getElementById('modal-borrar-progreso').close();
+    });
+
+    document.getElementById('btn-cancelar-borrar-total').addEventListener('click', () => {
+      document.getElementById('modal-borrar-progreso').close();
+    });
+
+    document.getElementById('btn-personajes-hud').addEventListener('click', () => {
+      renderPersonajesGrid();
+      document.getElementById('modal-personajes').showModal();
+    });
+
+    document.getElementById('btn-cerrar-personajes').addEventListener('click', () => {
+      document.getElementById('modal-personajes').close();
     });
 
     /* Botón de reiniciar en el inicio */
@@ -2033,7 +2723,7 @@
     });
 
     document.getElementById('btn-confirmar-reinicio').addEventListener('click', () => {
-      reiniciarJuego();
+      reiniciarPartida();
       modalReiniciar.close();
       // Efecto visual
       const chispas = document.getElementById('chispas-fondo');
@@ -2140,10 +2830,16 @@
      INICIO
      ═══════════════════════════════════════ */
   document.addEventListener('DOMContentLoaded', () => {
+    inicializarAlmacenamiento();
+    migrarMonedasAlPerfil();
+    revisarDesbloqueos();
+    actualizarBarraPuntos();
+    aplicarPersonajeActivo();
     initEventos();
     crearChispas();
     actualizarMapa();
     actualizarIndicadorPartida();
+    actualizarVisibilidadHud();
 
     /* Si ya completó todo, permitir ir al tesoro desde el mapa */
     if (MISIONES_ORDEN.every(m => misionCompletada(m))) {
