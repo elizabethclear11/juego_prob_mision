@@ -67,6 +67,7 @@
     dadoLanzamientos: 0,
     dadoAciertos: 0,
     monedasDado: 0,
+    ruletaBonusEntregado: false,
     // Estado persistente de Misión 2
     estadoCajas: null,
     // Estado persistente de Misión 3
@@ -79,6 +80,9 @@
   let dadoMeta = 15;
   let ruletaGiros = 0;
   let ruletaMinimo = 5;
+  let bolsaIntentos = 0;
+  let bolsaMinimoGrafico = 8;
+  const RULETA_MAX_INTENTOS = 5;
   let cajasAbiertas = 0;
   let cajasMinimo = 3;
 
@@ -157,6 +161,49 @@
     }
 
     setTimeout(() => contenedor.remove(), 650);
+  }
+
+  /** Sonido de giro de ruleta (Web Audio API, sin archivos externos) */
+  function sonidoGiroRuleta(duracionMs) {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return null;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(180, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(60, ctx.currentTime + duracionMs / 1000);
+      gain.gain.setValueAtTime(0.06, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duracionMs / 1000);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + duracionMs / 1000 + 0.05);
+      return ctx;
+    } catch {
+      return null;
+    }
+  }
+
+  function sonidoAciertoRuleta() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523, ctx.currentTime);
+      osc.frequency.setValueAtTime(659, ctx.currentTime + 0.1);
+      osc.frequency.setValueAtTime(784, ctx.currentTime + 0.2);
+      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.45);
+    } catch { /* sin audio */ }
   }
 
   /** Chispas doradas en pantalla de inicio */
@@ -1433,41 +1480,45 @@
      ═══════════════════════════════════════ */
   
   // Configuración de la ruleta
-  // IMPORTANTE: Estos ángulos deben coincidir con la imagen real de la ruleta
-  // La flecha apunta hacia ARRIBA (0 grados)
+  // IMPORTANTE: Estos ángulos deben coincidir con la imagen real y los objetos del HTML.
+  // Convención: 0° = arriba (12 en punto), sentido horario positivo (igual que CSS rotate).
+  // La flecha fija apunta al sector en 0°.
+  const ANGULO_FLECHA = 0;
+  const ANGULO_INICIAL_RULETA = 0;
+
   const RULETA_CONFIG = {
-    // Mapeo de tipos de premio a sus ángulos en la imagen
-    // Los ángulos representan dónde están los sectores en la imagen de la ruleta
-    // 0° = arriba (donde apunta la flecha)
     sectores: [
-      { tipo: 'moneda', angulo: 0, color: '#D4A017' },      // Arriba
-      { tipo: 'llave', angulo: 45, color: '#8D6E63' },      // Derecha-arriba
-      { tipo: 'moneda', angulo: 90, color: '#D4A017' },     // Derecha
-      { tipo: 'pista', angulo: 135, color: '#F0C75E' },     // Derecha-abajo
-      { tipo: 'moneda', angulo: 180, color: '#D4A017' },    // Abajo
-      { tipo: 'piedra', angulo: 225, color: '#5D4037' },    // Izquierda-abajo
-      { tipo: 'llave', angulo: 270, color: '#8D6E63' },     // Izquierda
-      { tipo: 'pista', angulo: 315, color: '#F0C75E' }      // Izquierda-arriba
+      { tipo: 'moneda', angulo: 45, color: '#D4A017' },   // Superior-Derecha (cuadrante azul)
+      { tipo: 'llave', angulo: 135, color: '#8D6E63' },   // Inferior-Derecha (cuadrante marrón)
+      { tipo: 'pista', angulo: 225, color: '#F0C75E' },   // Inferior-Izquierda (cuadrante oscuro)
+      { tipo: 'piedra', angulo: 315, color: '#5D4037' }  // Superior-Izquierda (cuadrante dorado)
     ]
   };
 
-  const RULETA_OPCIONES = [
-    { tipo: 'moneda', peso: 40, mensaje: '¡Moneda dorada!', img: IMG.moneda },
-    { tipo: 'llave', peso: 25, mensaje: '¡Llave misteriosa!', img: IMG.llave },
-    { tipo: 'pista', peso: 20, mensaje: '¡Pergamino con pista!', img: IMG.pista },
-    { tipo: 'piedra', peso: 15, mensaje: 'Piedra gris', img: IMG.piedra }
+  const GRADOS_POR_SECTOR = 360 / RULETA_CONFIG.sectores.length;
+  const RULETA_TOTAL_ESPACIOS = 10;
+
+  const RULETA_PREMIOS = [
+    { tipo: 'moneda', label: 'Moneda', espacios: 5, pct: 50, img: IMG.moneda, mensaje: '¡Moneda dorada!' },
+    { tipo: 'llave', label: 'Llave', espacios: 2, pct: 20, img: IMG.llave, mensaje: '¡Llave misteriosa!' },
+    { tipo: 'piedra', label: 'Piedra', espacios: 2, pct: 20, img: IMG.piedra, mensaje: 'Piedra gris' },
+    { tipo: 'pista', label: 'Pista', espacios: 1, pct: 10, img: IMG.pista, mensaje: '¡Pergamino con pista!' }
   ];
 
   function crearPoolRuleta() {
     const pool = [];
-    RULETA_OPCIONES.forEach(op => {
-      for (let i = 0; i < op.peso; i++) pool.push(op);
+    RULETA_PREMIOS.forEach(p => {
+      for (let i = 0; i < p.espacios; i++) pool.push(p);
     });
     return pool;
   }
 
+  function premioRuletaPorTipo(tipo) {
+    return RULETA_PREMIOS.find(p => p.tipo === tipo) || RULETA_PREMIOS[0];
+  }
+
   const poolRuleta = crearPoolRuleta();
-  let anguloRuletaActual = 0;
+  let rotacionAcumulada = 0;
 
   function imgRuletaPorTipo(tipo) {
     const mapa = {
@@ -1479,119 +1530,397 @@
     return mapa[tipo] || IMG.moneda;
   }
 
-  function obtenerSectorPorTipo(tipo) {
-    // Filtrar sectores que coincidan con el tipo
-    const sectoresDelTipo = RULETA_CONFIG.sectores.filter(s => s.tipo === tipo);
-    // Elegir uno aleatorio
-    return sectoresDelTipo[Math.floor(Math.random() * sectoresDelTipo.length)];
+  function normalizarAngulo(angulo) {
+    return ((angulo % 360) + 360) % 360;
+  }
+
+  function obtenerIndiceGanador(tipo) {
+    return RULETA_CONFIG.sectores.findIndex(s => s.tipo === tipo);
+  }
+
+  function obtenerCentroSector(indice) {
+    const sector = RULETA_CONFIG.sectores[indice];
+    if (sector && typeof sector.angulo === 'number') {
+      return sector.angulo;
+    }
+    return ANGULO_INICIAL_RULETA + indice * GRADOS_POR_SECTOR + GRADOS_POR_SECTOR / 2;
+  }
+
+  function calcularRotacionFinal(rotacionActual, indiceGanador, vueltasCompletas) {
+    const centroSector = obtenerCentroSector(indiceGanador);
+    const objetivoNormalizado = normalizarAngulo(ANGULO_FLECHA - centroSector);
+    const actualNormalizado = normalizarAngulo(rotacionActual);
+    let ajuste = objetivoNormalizado - actualNormalizado;
+    if (ajuste <= 0) ajuste += 360;
+    return rotacionActual + vueltasCompletas * 360 + ajuste;
+  }
+
+  function detectarPremioPorRotacion(rotacionFinal) {
+    const rotacionNormalizada = normalizarAngulo(rotacionFinal);
+    let mejorIndice = 0;
+    let menorDistancia = Infinity;
+
+    RULETA_CONFIG.sectores.forEach((sector, indice) => {
+      const posicionVisual = normalizarAngulo(sector.angulo + rotacionNormalizada);
+      const distancia = Math.min(
+        Math.abs(posicionVisual - ANGULO_FLECHA),
+        360 - Math.abs(posicionVisual - ANGULO_FLECHA)
+      );
+      if (distancia < menorDistancia) {
+        menorDistancia = distancia;
+        mejorIndice = indice;
+      }
+    });
+
+    return {
+      indice: mejorIndice,
+      tipo: RULETA_CONFIG.sectores[mejorIndice].tipo,
+      anguloSector: RULETA_CONFIG.sectores[mejorIndice].angulo
+    };
   }
 
   function initMisionRuleta() {
     const disco = document.getElementById('ruleta-disco');
+    const contenedorRuleta = document.getElementById('ruleta-contenedor');
+    const flecha = document.getElementById('ruleta-flecha');
     const mensaje = document.getElementById('mensaje-ruleta');
-    const registro = document.getElementById('registro-ruleta');
     const btnGirar = document.getElementById('btn-girar-ruleta');
+    const btnSiguiente = document.getElementById('btn-ruleta-siguiente');
     const btnContinuar = document.getElementById('btn-ruleta-continuar');
+    const contadorIntentos = document.getElementById('ruleta-contador-intentos');
+    const michiMensaje = document.getElementById('ruleta-michi-mensaje');
+    const panelPrediccion = document.getElementById('ruleta-panel-prediccion');
+    const panelProb = document.getElementById('ruleta-prob-panel');
+    const opcionesPrediccion = document.getElementById('ruleta-opciones-prediccion');
+    const probBarras = document.getElementById('ruleta-prob-barras');
+    const espaciosVisual = document.getElementById('ruleta-espacios-visual');
+    const panelResultado = document.getElementById('ruleta-resultado-panel');
+    const resultadoReal = document.getElementById('ruleta-resultado-real');
+    const resultadoPrediccion = document.getElementById('ruleta-resultado-prediccion');
+    const comparacion = document.getElementById('ruleta-comparacion');
+    const puntosGanados = document.getElementById('ruleta-puntos-ganados');
+    const panelResumen = document.getElementById('ruleta-resumen-final');
+    const resumenAciertos = document.getElementById('ruleta-resumen-aciertos');
+    const resumenResultados = document.getElementById('ruleta-resumen-resultados');
+    const resumenBonus = document.getElementById('ruleta-resumen-bonus');
+    const premioEspecial = document.getElementById('ruleta-premio-especial');
+    const michiCelebracion = document.getElementById('ruleta-michi-celebracion');
+    const esperaEl = document.getElementById('ruleta-espera');
+    const cntMonedas = document.getElementById('numero-monedas-ruleta');
+    const zonaRuleta = document.getElementById('imagenRuleta');
 
-    ruletaGiros = estado.resultadosRuleta.length;
-    registro.innerHTML = '';
-    btnContinuar.classList.add('oculto');
-    btnGirar.classList.remove('oculto');
-    btnGirar.disabled = false;
+    if (!estado.resultadosRuleta) estado.resultadosRuleta = [];
 
-    /* Resetear rotación inicial */
-    anguloRuletaActual = 0;
+    let intentosRealizados = estado.resultadosRuleta.length;
+    let prediccionSeleccionada = null;
+    let girando = false;
+
+    function sincronizarMonedas() {
+      if (cntMonedas) cntMonedas.textContent = estado.monedasDado || 0;
+    }
+    sincronizarMonedas();
+
+    function renderProbabilidades() {
+      if (!probBarras || !espaciosVisual) return;
+      probBarras.innerHTML = '';
+      espaciosVisual.innerHTML = '';
+
+      RULETA_PREMIOS.forEach(p => {
+        const fila = document.createElement('div');
+        fila.className = 'ruleta-prob-fila';
+        fila.innerHTML = `
+          <span class="ruleta-prob-etiqueta">
+            <img src="${p.img}" alt="${p.label}">
+            ${p.label}
+          </span>
+          <div class="ruleta-prob-barra-fondo">
+            <div class="ruleta-prob-barra-relleno ${p.tipo}" style="width: 0%"></div>
+          </div>
+          <span class="ruleta-prob-pct">${p.pct}%</span>
+        `;
+        probBarras.appendChild(fila);
+        requestAnimationFrame(() => {
+          fila.querySelector('.ruleta-prob-barra-relleno').style.width = p.pct + '%';
+        });
+      });
+
+      const leyenda = document.createElement('p');
+      leyenda.className = 'ruleta-prob-ayuda';
+      leyenda.style.marginTop = '0';
+      leyenda.textContent = `${RULETA_TOTAL_ESPACIOS} espacios en la ruleta:`;
+      espaciosVisual.appendChild(leyenda);
+      const slots = document.createElement('div');
+      slots.style.display = 'flex';
+      slots.style.flexWrap = 'wrap';
+      slots.style.gap = '4px';
+      slots.style.justifyContent = 'center';
+      slots.style.width = '100%';
+      RULETA_PREMIOS.forEach(p => {
+        for (let i = 0; i < p.espacios; i++) {
+          const slot = document.createElement('span');
+          slot.className = 'ruleta-espacio-slot';
+          slot.title = p.label;
+          slot.appendChild(crearImg(p.img, p.label));
+          slots.appendChild(slot);
+        }
+      });
+      espaciosVisual.appendChild(slots);
+    }
+
+    function renderOpcionesPrediccion() {
+      if (!opcionesPrediccion) return;
+      opcionesPrediccion.innerHTML = '';
+      RULETA_PREMIOS.forEach(p => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'ruleta-opcion-btn';
+        btn.dataset.tipo = p.tipo;
+        btn.appendChild(crearImg(p.img, p.label));
+        btn.appendChild(document.createTextNode(p.label));
+        btn.onclick = () => {
+          if (girando || !panelResultado.classList.contains('oculto')) return;
+          prediccionSeleccionada = p.tipo;
+          opcionesPrediccion.querySelectorAll('.ruleta-opcion-btn').forEach(b => {
+            b.classList.toggle('seleccionada', b === btn);
+          });
+          btnGirar.disabled = false;
+          mensaje.textContent = '¡Listo! Presiona Girar cuando quieras.';
+        };
+        opcionesPrediccion.appendChild(btn);
+      });
+    }
+
+    function actualizarContador() {
+      if (contadorIntentos) {
+        contadorIntentos.textContent = `Intentos: ${intentosRealizados}/${RULETA_MAX_INTENTOS}`;
+      }
+    }
+
+    function resetFasePrediccion() {
+      prediccionSeleccionada = null;
+      panelResultado.classList.add('oculto');
+      panelPrediccion.classList.remove('oculto');
+      panelProb.classList.remove('oculto');
+      michiMensaje.textContent = 'Antes de girar la ruleta... ¿qué premio crees que aparecerá?';
+      btnGirar.classList.remove('oculto');
+      btnGirar.disabled = true;
+      btnSiguiente.classList.add('oculto');
+      opcionesPrediccion.querySelectorAll('.ruleta-opcion-btn').forEach(b => {
+        b.classList.remove('seleccionada');
+        b.disabled = false;
+      });
+      actualizarContador();
+      mensaje.textContent = intentosRealizados > 0
+        ? `Intento ${intentosRealizados + 1} de ${RULETA_MAX_INTENTOS}. Elige tu predicción.`
+        : 'Selecciona tu predicción para poder girar.';
+    }
+
+    function renderItemResultado(contenedor, premio) {
+      contenedor.innerHTML = '';
+      contenedor.appendChild(crearImg(premio.img, premio.label));
+      const texto = document.createElement('strong');
+      texto.textContent = premio.label.toUpperCase();
+      contenedor.appendChild(texto);
+    }
+
+    function contarAciertos() {
+      return estado.resultadosRuleta.filter(r => r.acerto).length;
+    }
+
+    function contarResultadosPorTipo() {
+      const conteo = { moneda: 0, llave: 0, piedra: 0, pista: 0 };
+      estado.resultadosRuleta.forEach(r => {
+        if (conteo[r.tipo] !== undefined) conteo[r.tipo]++;
+      });
+      return conteo;
+    }
+
+    function mostrarResumenFinal() {
+      panelPrediccion.classList.add('oculto');
+      panelProb.classList.add('oculto');
+      panelResultado.classList.add('oculto');
+      zonaRuleta.classList.add('oculto');
+      btnGirar.classList.add('oculto');
+      btnSiguiente.classList.add('oculto');
+      panelResumen.classList.remove('oculto');
+      btnContinuar.classList.remove('oculto');
+
+      const aciertos = contarAciertos();
+      resumenAciertos.textContent = `Tus predicciones correctas: ${aciertos}/${RULETA_MAX_INTENTOS}`;
+
+      resumenResultados.innerHTML = '<p style="text-align:center;margin:0 0 0.5rem;font-weight:700;color:var(--dorado-claro)">Resultados obtenidos:</p>';
+      const conteo = contarResultadosPorTipo();
+      RULETA_PREMIOS.forEach(p => {
+        const fila = document.createElement('div');
+        fila.className = 'ruleta-resumen-fila';
+        fila.appendChild(crearImg(p.img, p.label));
+        fila.appendChild(document.createTextNode(`${p.label}: ${conteo[p.tipo]} ${conteo[p.tipo] === 1 ? 'vez' : 'veces'}`));
+        resumenResultados.appendChild(fila);
+      });
+
+      let bonusTotal = 0;
+      let textoBonus = '';
+      if (aciertos >= 1) {
+        bonusTotal += 10;
+        textoBonus = '+10 puntos por tu primer acierto';
+      }
+      if (aciertos >= 3) {
+        bonusTotal += 30;
+        textoBonus = '+40 puntos extra por 3 o más aciertos';
+      }
+      if (bonusTotal > 0 && !estado.ruletaBonusEntregado) {
+        estado.monedasDado = (estado.monedasDado || 0) + bonusTotal;
+        estado.ruletaBonusEntregado = true;
+        guardarEstado();
+        sincronizarMonedas();
+        resumenBonus.textContent = `Bonificación final: ${textoBonus}`;
+        resumenBonus.classList.remove('oculto');
+      } else if (bonusTotal > 0 && estado.ruletaBonusEntregado) {
+        resumenBonus.textContent = `Bonificación final ya obtenida: ${textoBonus}`;
+        resumenBonus.classList.remove('oculto');
+      }
+
+      if (aciertos >= RULETA_MAX_INTENTOS) {
+        premioEspecial.classList.remove('oculto');
+        michiCelebracion.classList.remove('oculto');
+      }
+
+      mensaje.textContent = '¡Desafío final superado! El tesoro te espera.';
+      michiMensaje.textContent = '¡Increíble! Aprendiste que la probabilidad guía nuestras expectativas, pero el azar siempre sorprende.';
+    }
+
+    /* Inicializar UI estática */
+    renderProbabilidades();
+    renderOpcionesPrediccion();
+
+    rotacionAcumulada = 0;
     disco.style.transition = 'none';
-    disco.style.transform = `rotate(0deg)`;
-    // Forzar reflow
+    disco.style.transform = 'rotate(0deg)';
     void disco.offsetWidth;
 
-    /* Mostrar giros anteriores */
-    estado.resultadosRuleta.forEach(r => {
-      const chip = document.createElement('span');
-      chip.className = 'chip-resultado';
-      const srcImg = r.img || imgRuletaPorTipo(r.tipo);
-      if (srcImg) chip.appendChild(crearImg(srcImg, r.tipo));
-      chip.appendChild(document.createTextNode(r.tipo));
-      registro.appendChild(chip);
-    });
+    btnContinuar.classList.add('oculto');
+    panelResumen.classList.add('oculto');
+    premioEspecial.classList.add('oculto');
+    michiCelebracion.classList.add('oculto');
+    resumenBonus.classList.add('oculto');
+    zonaRuleta.classList.remove('oculto');
 
-    if (ruletaGiros >= ruletaMinimo && misionCompletada('ruleta')) {
-      btnGirar.classList.add('oculto');
-      btnContinuar.classList.remove('oculto');
-      mensaje.textContent = '¡Desafío completado! El tesoro te espera.';
+    if (intentosRealizados >= RULETA_MAX_INTENTOS) {
+      if (!misionCompletada('ruleta')) completarMision('ruleta');
+      mostrarResumenFinal();
       return;
     }
 
-    mensaje.textContent = ruletaGiros > 0
-      ? `Giros: ${ruletaGiros}. ¡Sigue girando!`
-      : '¡Presiona girar para descubrir tu premio!';
-
-    let girando = false;
+    resetFasePrediccion();
 
     btnGirar.onclick = async () => {
-      if (girando) return;
+      if (girando || !prediccionSeleccionada) return;
+      if (intentosRealizados >= RULETA_MAX_INTENTOS) return;
+
       girando = true;
       btnGirar.disabled = true;
+      opcionesPrediccion.querySelectorAll('.ruleta-opcion-btn').forEach(b => { b.disabled = true; });
+      panelResultado.classList.add('oculto');
+      puntosGanados.classList.add('oculto');
 
-      // Efecto de partículas al girar
+      const intentoNum = intentosRealizados + 1;
+      mensaje.textContent = `Intento ${intentoNum}/${RULETA_MAX_INTENTOS} — ¡La ruleta gira!`;
+      michiMensaje.textContent = '¡Veamos si tu predicción coincide con el azar!';
+
       const rect = disco.getBoundingClientRect();
       crearParticulas(rect.left + rect.width / 2, rect.top + rect.height / 2, 'var(--dorado)');
 
-      /* 1. Seleccionar resultado basado en probabilidades */
-      const resultadoObjeto = poolRuleta[Math.floor(Math.random() * poolRuleta.length)];
-      
-      /* 2. Obtener un sector que tenga ese tipo de premio */
-      const sectorGanador = obtenerSectorPorTipo(resultadoObjeto.tipo);
-      
-      /* 3. Calcular ángulo de rotación
-         La flecha apunta a 0° (arriba). Para que un sector termine bajo la flecha,
-         necesitamos rotar la ruleta de forma que ese sector quede en 0°.
-         
-         Si el sector está en el ángulo X, y queremos que quede en 0°,
-         necesitamos rotar: (360 - X) grados (+ vueltas completas)
-      */
-      
-      const vueltasCompletas = 5 + Math.floor(Math.random() * 4); // 5-8 vueltas
-      const variacionDentroDelSector = (Math.random() - 0.5) * 30; // ±15 grados dentro del sector
-      
-      // Calcular cuánto girar para que el sector ganador quede arriba
-      const rotacionNecesaria = 360 - sectorGanador.angulo + variacionDentroDelSector;
-      const anguloFinal = anguloRuletaActual + (vueltasCompletas * 360) + rotacionNecesaria;
-      
-      // Aplicar rotación
+      /* Premio seleccionado UNA SOLA VEZ antes del giro */
+      const resultadoPremio = poolRuleta[Math.floor(Math.random() * poolRuleta.length)];
+      const premioSeleccionado = resultadoPremio.tipo;
+      const INDICE_GANADOR = obtenerIndiceGanador(premioSeleccionado);
+      if (INDICE_GANADOR < 0) {
+        girando = false;
+        resetFasePrediccion();
+        return;
+      }
+
+      const vueltasCompletas = 5 + Math.floor(Math.random() * 4);
+      const ROTACION_FINAL = calcularRotacionFinal(rotacionAcumulada, INDICE_GANADOR, vueltasCompletas);
+
+      /* Efectos durante el giro */
+      flecha.classList.add('vibrando');
+      contenedorRuleta.classList.add('girando-intenso');
+      esperaEl.classList.remove('oculto');
+      sonidoGiroRuleta(4200);
+
       disco.style.transition = 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)';
-      disco.style.transform = `rotate(${anguloFinal}deg)`;
-      
-      // Actualizar ángulo actual (normalizado a 0-360)
-      anguloRuletaActual = anguloFinal % 360;
+      disco.style.transform = `rotate(${ROTACION_FINAL}deg)`;
+      rotacionAcumulada = ROTACION_FINAL;
 
       await sleep(4200);
 
-      mensaje.textContent = resultadoObjeto.mensaje;
+      flecha.classList.remove('vibrando');
+      contenedorRuleta.classList.remove('girando-intenso');
+      esperaEl.classList.add('oculto');
+
+      /* Suspense antes del resultado */
+      await sleep(600);
+      contenedorRuleta.classList.add('celebracion');
       destello(disco);
+      crearParticulas(rect.left + rect.width / 2, rect.top + rect.height / 2, 'var(--dorado-brillo)');
+      await sleep(400);
+      contenedorRuleta.classList.remove('celebracion');
 
-      const chip = document.createElement('span');
-      chip.className = 'chip-resultado';
-      chip.appendChild(crearImg(resultadoObjeto.img, resultadoObjeto.tipo));
-      chip.appendChild(document.createTextNode(resultadoObjeto.tipo));
-      registro.appendChild(chip);
+      const acerto = prediccionSeleccionada === premioSeleccionado;
+      const predPremio = premioRuletaPorTipo(prediccionSeleccionada);
 
-      estado.resultadosRuleta.push({ tipo: resultadoObjeto.tipo, img: resultadoObjeto.img });
-      ruletaGiros++;
+      estado.resultadosRuleta.push({
+        tipo: premioSeleccionado,
+        prediccion: prediccionSeleccionada,
+        acerto,
+        img: resultadoPremio.img
+      });
+      intentosRealizados++;
       guardarEstado();
 
-      if (ruletaGiros >= ruletaMinimo) {
-        completarMision('ruleta');
-        await sleep(600);
-        mensaje.textContent = '¡Desafío superado! El tesoro está cerca.';
-        btnGirar.classList.add('oculto');
-        btnContinuar.classList.remove('oculto');
+      /* Mostrar comparación */
+      panelPrediccion.classList.add('oculto');
+      panelResultado.classList.remove('oculto');
+      renderItemResultado(resultadoReal, resultadoPremio);
+      renderItemResultado(resultadoPrediccion, predPremio);
+
+      if (acerto) {
+        comparacion.textContent = '¡Correcto! Tu predicción coincidió con el resultado.';
+        comparacion.className = 'ruleta-comparacion correcto';
+        puntosGanados.textContent = '+1 punto';
+        puntosGanados.classList.remove('oculto');
+        estado.monedasDado = (estado.monedasDado || 0) + 1;
+        guardarEstado();
+        sincronizarMonedas();
+        sonidoAciertoRuleta();
+        michiMensaje.textContent = '¡Lo adivinaste! Aunque la probabilidad ayuda, a veces el azar te sonríe.';
       } else {
-        btnGirar.disabled = false;
+        comparacion.textContent = 'Esta vez no acertaste, pero recuerda que la probabilidad no significa que siempre ocurrirá. ¡Inténtalo nuevamente!';
+        comparacion.className = 'ruleta-comparacion incorrecto';
+        michiMensaje.textContent = 'No te preocupes. Aunque un objeto tenga más probabilidad, no siempre saldrá. ¡Sigue intentando!';
+      }
+
+      mensaje.textContent = acerto
+        ? `¡Acierto en el intento ${intentoNum}! Observa las probabilidades para el siguiente giro.`
+        : `Intento ${intentoNum} completado. Observa qué objeto tiene más espacios en la ruleta.`;
+
+      btnGirar.classList.add('oculto');
+
+      if (intentosRealizados >= RULETA_MAX_INTENTOS) {
+        completarMision('ruleta');
+        await sleep(1200);
+        mostrarResumenFinal();
+      } else {
+        btnSiguiente.classList.remove('oculto');
       }
 
       girando = false;
+    };
+
+    btnSiguiente.onclick = () => {
+      btnSiguiente.classList.add('oculto');
+      resetFasePrediccion();
     };
   }
 
