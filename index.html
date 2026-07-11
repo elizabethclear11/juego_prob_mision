@@ -24,7 +24,8 @@
       </div>
 
       <div class="grupo-botones">
-        <button class="btn btn-primario" id="btn-comenzar">Comenzar aventura</button>
+        <button class="btn btn-primario" id="btn-comenzar">Continuar aventura</button>
+        <button class="btn btn-secundario" id="btn-reiniciar-inicio">Reiniciar juego</button>
         <button class="btn btn-secundario" id="btn-instrucciones">Instrucciones</button>
       </div>
     </div>
@@ -40,6 +41,27 @@
         <li>¡Diviértete aprendiendo!</li>
       </ul>
       <button class="btn btn-primario" id="btn-cerrar-instrucciones">¡Entendido!</button>
+    </div>
+  </dialog>
+
+  <dialog id="modal-reiniciar" class="modal">
+    <div class="modal-contenido modal-advertencia">
+      <h2>⚠️ Reiniciar Juego</h2>
+      <p class="texto-advertencia">
+        Esto borrará <strong>todo tu progreso</strong>:
+      </p>
+      <ul class="lista-progreso">
+        <li>❌ Posición en el camino del dado</li>
+        <li>❌ Monedas ganadas</li>
+        <li>❌ Estadísticas de predicción</li>
+        <li>❌ Misiones completadas</li>
+        <li>❌ Resultados de cajas, bolsa y ruleta</li>
+      </ul>
+      <p class="texto-confirmacion">¿Estás seguro de que quieres empezar de nuevo?</p>
+      <div class="botones-modal">
+        <button class="btn btn-primario" id="btn-confirmar-reinicio">Sí, reiniciar</button>
+        <button class="btn btn-secundario" id="btn-cancelar-reinicio">Cancelar</button>
+      </div>
     </div>
   </dialog>
 
@@ -157,14 +179,34 @@
       <header class="cabecera-mision">
         <button class="btn btn-mini" id="btn-dado-mapa">← Mapa</button>
         <h2>Misión 1: El dado mágico</h2>
+        
+        <!-- Contador de monedas en esquina superior derecha -->
+        <div class="contador-monedas" id="contador-monedas">
+          <img src="img/tesoro/cofre.png" alt="Cofre" class="icono-cofre-contador">
+          <span class="numero-monedas" id="numero-monedas">0</span>
+        </div>
       </header>
 
-      <p class="narracion">¡Lanza el dado para avanzar!</p>
+      <p class="narracion">¡Predice el número y lanza el dado para avanzar!</p>
+
+      <!-- Sistema de predicción -->
+      <div class="panel-prediccion" id="panel-prediccion">
+        <div class="prediccion-grupo">
+          <label for="prediccion-input" class="prediccion-label">Resultado esperado:</label>
+          <input type="number" id="prediccion-input" class="prediccion-input" min="1" max="6" placeholder="1-6">
+        </div>
+        
+        <div class="prediccion-resultado oculto" id="prediccion-resultado">
+          <p class="resultado-texto"><strong>Resultado del dado:</strong> <span id="resultado-dado-num">-</span></p>
+          <p class="resultado-verificacion" id="resultado-verificacion">-</p>
+          <p class="resultado-porcentaje" id="resultado-porcentaje">Precisión: <span id="porcentaje-aciertos">0%</span></p>
+        </div>
+      </div>
 
       <div class="area-mision-dado">
         <div id="imagenDado" class="zona-imagen">
           <button type="button" class="dado-interactivo" id="dado-animado" aria-label="Lanzar dado">
-            <img src="img/dados/dado-michi.png" alt="Dado del tesoro" class="dado-img">
+            <img src="img/dados/dado-michi.png" alt="Dado del tesoro" class="dado-img" id="dado-img">
           </button>
         </div>
 
@@ -174,7 +216,25 @@
       </div>
 
       <div class="sendero-avance" id="sendero-avance" aria-label="Camino de avance"></div>
-      <p class="mensaje-juego" id="mensaje-dado">Toca el dado para comenzar.</p>
+      <p class="mensaje-juego" id="mensaje-dado">Ingresa tu predicción y lanza el dado.</p>
+
+      <!-- Animación de moneda ganada -->
+      <div class="animacion-moneda oculto" id="animacion-moneda">
+        <img src="img/objetos/moneda-dorada.png" alt="Moneda ganada" class="moneda-ganada">
+        <p class="texto-moneda">¡+1 Moneda!</p>
+      </div>
+
+      <!-- Cofre final con llave -->
+      <div class="cofre-final oculto" id="cofre-final">
+        <div class="cofre-cerrado" id="cofre-cerrado">
+          <img src="img/tesoro/cofre.png" alt="Cofre cerrado">
+        </div>
+        <div class="cofre-abierto-llave oculto" id="cofre-abierto-llave">
+          <img src="img/tesoro/cofre-abierto.png" alt="Cofre abierto">
+          <img src="img/objetos/llave-antigua.png" alt="Llave" class="llave-flotante">
+        </div>
+        <p class="texto-llave" id="texto-llave">¡Has encontrado la llave dorada!</p>
+      </div>
 
       <button class="btn btn-primario btn-grande" id="btn-lanzar-dado">Lanzar dado</button>
       <button class="btn btn-secundario oculto" id="btn-dado-continuar">Misión completada → Volver al mapa</button>

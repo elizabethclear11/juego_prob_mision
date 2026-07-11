@@ -63,7 +63,10 @@
     resultadosCajas: [],
     resultadosBolsa: { azul: 0, roja: 0 },
     resultadosRuleta: [],
-    posicionDado: 0
+    posicionDado: 0,
+    dadoLanzamientos: 0,
+    dadoAciertos: 0,
+    monedasDado: 0
   };
 
   let estado = cargarEstado();
@@ -324,17 +327,37 @@
     const btnLanzar = document.getElementById('btn-lanzar-dado');
     const btnContinuar = document.getElementById('btn-dado-continuar');
     const dado = document.getElementById('dado-animado');
+    const dadoImg = document.getElementById('dado-img');
     const michi = document.getElementById('michi-camino');
+    const prediccionInput = document.getElementById('prediccion-input');
+    const prediccionResultado = document.getElementById('prediccion-resultado');
+    const resultadoDadoNum = document.getElementById('resultado-dado-num');
+    const resultadoVerificacion = document.getElementById('resultado-verificacion');
+    const porcentajeAciertos = document.getElementById('porcentaje-aciertos');
+    const animacionMoneda = document.getElementById('animacion-moneda');
+    const contadorMonedas = document.getElementById('numero-monedas');
+    const cofreFinal = document.getElementById('cofre-final');
+    const cofreCerrado = document.getElementById('cofre-cerrado');
+    const cofreAbiertoLlave = document.getElementById('cofre-abierto-llave');
 
     let posicion = estado.posicionDado || 0;
     let lanzando = false;
+    let totalLanzamientos = estado.dadoLanzamientos || 0;
+    let aciertos = estado.dadoAciertos || 0;
+    let monedas = estado.monedasDado || 0;
 
-    /* Construir sendero visual */
+    // Actualizar contador de monedas
+    if (contadorMonedas) {
+      contadorMonedas.textContent = monedas;
+    }
+
+    /* Construir sendero visual con SOLO números */
     sendero.innerHTML = '';
     for (let i = 0; i <= dadoMeta; i++) {
       const paso = document.createElement('div');
       paso.className = 'paso-sendero' + (i === posicion ? ' activo' : '') + (i === dadoMeta ? ' meta' : '');
-      paso.textContent = i === dadoMeta ? '💎' : i;
+      // Solo números, excepto en la meta que ponemos un cofre
+      paso.textContent = i === dadoMeta ? '🎁' : i;
       paso.dataset.paso = i;
       sendero.appendChild(paso);
     }
@@ -342,20 +365,54 @@
     btnContinuar.classList.add('oculto');
     btnLanzar.classList.remove('oculto');
     btnLanzar.disabled = false;
+    prediccionResultado.classList.add('oculto');
+    cofreFinal.classList.add('oculto');
+    animacionMoneda.classList.add('oculto');
 
     if (posicion >= dadoMeta) {
       mensaje.textContent = '¡Meta alcanzada!';
       btnLanzar.classList.add('oculto');
+      cofreFinal.classList.remove('oculto');
+      
+      // Mostrar cofre abierto con llave después de un momento
+      setTimeout(() => {
+        cofreCerrado.classList.add('oculto');
+        cofreAbiertoLlave.classList.remove('oculto');
+      }, 1000);
+      
       btnContinuar.classList.remove('oculto');
       return;
     }
 
-    mensaje.textContent = 'Toca el dado o el botón para lanzar';
+    mensaje.textContent = 'Ingresa tu predicción (1-6) y lanza el dado';
+
+    // Actualizar estadísticas de predicción
+    actualizarEstadisticas();
+
+    function actualizarEstadisticas() {
+      if (totalLanzamientos > 0) {
+        const porcentaje = Math.round((aciertos / totalLanzamientos) * 100);
+        porcentajeAciertos.textContent = porcentaje + '%';
+      } else {
+        porcentajeAciertos.textContent = '0%';
+      }
+    }
 
     btnLanzar.onclick = async () => {
       if (lanzando || posicion >= dadoMeta) return;
+
+      // Validar predicción
+      const prediccion = parseInt(prediccionInput.value);
+      if (!prediccion || prediccion < 1 || prediccion > 6) {
+        mensaje.textContent = '⚠️ Ingresa un número del 1 al 6 primero';
+        prediccionInput.focus();
+        return;
+      }
+
       lanzando = true;
       btnLanzar.disabled = true;
+      prediccionResultado.classList.add('oculto');
+      animacionMoneda.classList.add('oculto');
 
       // Efecto de partículas al lanzar
       const rect = dado.getBoundingClientRect();
@@ -367,8 +424,51 @@
       await sleep(900);
 
       const resultado = Math.floor(Math.random() * 6) + 1;
+      
+      // Cambiar la imagen del dado a la carilla correspondiente
+      dadoImg.src = `img/dados/dado${resultado}.png`;
+      
       dado.classList.remove('girando');
       destello(dado);
+
+      // Verificar predicción
+      totalLanzamientos++;
+      const predictionCorrecta = (prediccion === resultado);
+      if (predictionCorrecta) {
+        aciertos++;
+        monedas++;
+        
+        // Animación de moneda ganada
+        animacionMoneda.classList.remove('oculto');
+        setTimeout(() => {
+          animacionMoneda.classList.add('oculto');
+        }, 2000);
+        
+        // Actualizar contador de monedas con animación
+        if (contadorMonedas) {
+          contadorMonedas.textContent = monedas;
+          contadorMonedas.parentElement.style.animation = 'none';
+          void contadorMonedas.parentElement.offsetWidth;
+          contadorMonedas.parentElement.style.animation = 'pulsoBoton 0.5s ease';
+        }
+      }
+
+      // Guardar estadísticas
+      estado.dadoLanzamientos = totalLanzamientos;
+      estado.dadoAciertos = aciertos;
+      estado.monedasDado = monedas;
+
+      // Mostrar resultado de predicción
+      prediccionResultado.classList.remove('oculto');
+      resultadoDadoNum.textContent = resultado;
+      
+      resultadoVerificacion.textContent = predictionCorrecta 
+        ? '✓ Tu predicción fue CORRECTA' 
+        : '✗ Tu predicción fue INCORRECTA';
+      
+      resultadoVerificacion.className = 'resultado-verificacion ' + (predictionCorrecta ? 'correcto' : 'incorrecto');
+      
+      actualizarEstadisticas();
 
       const nuevaPos = Math.min(posicion + resultado, dadoMeta);
       const pasosReales = nuevaPos - posicion;
@@ -389,20 +489,48 @@
         }
       });
 
-      mensaje.textContent = `Salió ${resultado}! ${pasosReales > 0 ? '+' + pasosReales + ' pasos' : ''} ${mensajeAleatorio(MENSAJES.neutral)}`;
+      mensaje.textContent = predictionCorrecta
+        ? `¡Acertaste! Salió ${resultado}. +${pasosReales} pasos ${mensajeAleatorio(MENSAJES.suerte)}`
+        : `Salió ${resultado}. +${pasosReales} pasos ${mensajeAleatorio(MENSAJES.neutral)}`;
 
       if (posicion >= dadoMeta) {
         await sleep(800);
-        mensaje.textContent = '¡Meta alcanzada! Michi encontró una pista.';
+        mensaje.textContent = '¡Meta alcanzada! Michi encontró el cofre con la llave dorada.';
         completarMision('dado');
         btnLanzar.classList.add('oculto');
-        btnContinuar.classList.remove('oculto');
+        
+        // Mostrar cofre
+        cofreFinal.classList.remove('oculto');
+        
+        // Animar apertura del cofre después de 1 segundo
+        setTimeout(() => {
+          cofreCerrado.classList.add('oculto');
+          cofreAbiertoLlave.classList.remove('oculto');
+          
+          // Efecto de partículas al abrir cofre
+          const cofreRect = cofreFinal.getBoundingClientRect();
+          crearParticulas(cofreRect.left + cofreRect.width / 2, cofreRect.top + cofreRect.height / 2, 'var(--dorado-brillo)');
+        }, 1500);
+        
+        setTimeout(() => {
+          btnContinuar.classList.remove('oculto');
+        }, 3000);
       } else {
+        // Limpiar input para siguiente predicción
+        prediccionInput.value = '';
+        prediccionInput.focus();
         btnLanzar.disabled = false;
       }
 
       lanzando = false;
     };
+
+    // También permitir lanzar con Enter
+    prediccionInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && !lanzando) {
+        btnLanzar.click();
+      }
+    });
   }
 
   /* ═══════════════════════════════════════
@@ -810,15 +938,57 @@
     estado.posicionDado = 0;
     actualizarMapa();
     mostrarPantalla('inicio');
+    actualizarIndicadorPartida();
   }
 
   /* ═══════════════════════════════════════
      EVENTOS DE NAVEGACIÓN
      ═══════════════════════════════════════ */
+  
+  /* Verificar si hay partida guardada y actualizar UI */
+  function actualizarIndicadorPartida() {
+    const btnComenzar = document.getElementById('btn-comenzar');
+    const badgeGuardado = document.getElementById('badge-guardado');
+    
+    const hayPartida = estado.misionesCompletadas.length > 0 || 
+                       estado.posicionDado > 0 ||
+                       estado.dadoLanzamientos > 0 ||
+                       estado.monedasDado > 0;
+    
+    if (hayPartida && badgeGuardado) {
+      badgeGuardado.classList.remove('oculto');
+      btnComenzar.innerHTML = 'Continuar aventura<span class="badge-guardado" id="badge-guardado">Partida guardada</span>';
+    } else if (badgeGuardado) {
+      badgeGuardado.classList.add('oculto');
+      btnComenzar.innerHTML = 'Comenzar aventura';
+    }
+  }
+  
   function initEventos() {
     /* Inicio */
     document.getElementById('btn-comenzar').addEventListener('click', () => {
       mostrarPantalla('historia');
+    });
+
+    /* Botón de reiniciar en el inicio */
+    const modalReiniciar = document.getElementById('modal-reiniciar');
+    document.getElementById('btn-reiniciar-inicio').addEventListener('click', () => {
+      modalReiniciar.showModal();
+    });
+
+    document.getElementById('btn-confirmar-reinicio').addEventListener('click', () => {
+      reiniciarJuego();
+      modalReiniciar.close();
+      // Efecto visual
+      const chispas = document.getElementById('chispas-fondo');
+      if (chispas) {
+        chispas.innerHTML = '';
+        crearChispas();
+      }
+    });
+
+    document.getElementById('btn-cancelar-reinicio').addEventListener('click', () => {
+      modalReiniciar.close();
     });
 
     const modal = document.getElementById('modal-instrucciones');
@@ -917,6 +1087,7 @@
     initEventos();
     crearChispas();
     actualizarMapa();
+    actualizarIndicadorPartida();
 
     /* Si ya completó todo, permitir ir al tesoro desde el mapa */
     if (MISIONES_ORDEN.every(m => misionCompletada(m))) {
