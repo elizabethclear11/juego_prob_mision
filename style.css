@@ -203,9 +203,71 @@ button {
   font-size: 0.95rem;
   font-weight: 700;
   margin: 0 auto 1.5rem;
-  display: inline-block;
+  display: block;
+  width: fit-content;
   box-shadow: 0 0 16px var(--resplandor-dorado);
   animation: pulsoEdad 3s ease-in-out infinite;
+}
+
+/* ── Pantalla de inicio compacta (sin scroll) ── */
+#pantalla-inicio.activa {
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+  justify-content: flex-start;
+  padding: 0.75rem 1rem 1rem;
+}
+
+#pantalla-inicio .contenido-pantalla {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  height: 100%;
+  max-height: calc(100vh - 1.75rem);
+}
+
+#pantalla-inicio .logo-juego {
+  width: min(220px, 60vw);
+  margin-bottom: 0.35rem;
+  flex-shrink: 0;
+}
+
+#pantalla-inicio .edad-recomendada {
+  margin: 0 auto 0.5rem;
+  flex-shrink: 0;
+}
+
+#pantalla-inicio .personaje-principal {
+  margin: 0.25rem auto;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+}
+
+#pantalla-inicio .personaje-principal img {
+  width: min(200px, 42vw);
+  max-height: min(240px, 32vh);
+}
+
+#pantalla-inicio .grupo-botones {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+#pantalla-inicio .grupo-botones .btn {
+  min-width: 0;
+  flex: 1 1 0;
+  max-width: 200px;
+  padding: 0.75rem 0.75rem;
+  font-size: 0.9rem;
 }
 
 @keyframes pulsoEdad {
@@ -262,9 +324,11 @@ button {
 /* ── Botones interactivos ── */
 .grupo-botones {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 0.75rem;
   align-items: center;
+  justify-content: center;
   margin-top: 1.5rem;
 }
 
@@ -1288,6 +1352,328 @@ button {
   object-fit: contain;
 }
 
+/* ── Misión 2: nuevos elementos de interacción ── */
+
+/* Botón de info probabilidad */
+.cajas-info-prob {
+  margin: 0.5rem 0 0.75rem;
+  text-align: center;
+}
+
+.btn-info-prob {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(61, 106, 158, 0.18);
+  border: 1px solid var(--azul-brillante);
+  border-radius: 20px;
+  color: var(--texto-suave);
+  font-size: 0.85rem;
+  font-family: inherit;
+  padding: 0.35rem 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.btn-info-prob:hover {
+  background: rgba(61, 106, 158, 0.35);
+  color: var(--dorado-claro);
+  border-color: var(--dorado);
+}
+
+.icono-info {
+  width: 18px;
+  height: 18px;
+  background: var(--azul-brillante);
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 0.75rem;
+  color: var(--blanco);
+  flex-shrink: 0;
+}
+
+.cajas-prob-texto {
+  margin-top: 0.5rem;
+  background: rgba(27, 42, 65, 0.85);
+  border: 1px solid rgba(61, 106, 158, 0.4);
+  border-radius: var(--radio-btn);
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  color: var(--texto-suave);
+  line-height: 1.55;
+  animation: entrarPantalla 0.3s ease;
+}
+
+.cajas-prob-texto strong {
+  color: var(--dorado-claro);
+}
+
+/* Panel activo: predicción y controles */
+.cajas-panel-activo {
+  background: linear-gradient(145deg, var(--azul-medio), var(--negro-suave));
+  border: 2px solid var(--dorado);
+  border-radius: var(--radio);
+  padding: 1.25rem;
+  margin: 0.75rem 0;
+  box-shadow: 0 0 20px var(--resplandor-azul);
+}
+
+/* Indicador de caja y oportunidad */
+.cajas-indicador {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.cajas-caja-actual {
+  font-weight: 900;
+  font-size: 1rem;
+  color: var(--dorado-claro);
+  text-shadow: 0 0 8px var(--resplandor-dorado);
+}
+
+.cajas-oportunidad {
+  font-size: 0.9rem;
+  color: var(--texto-suave);
+  background: rgba(0,0,0,0.3);
+  padding: 0.2rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* Slots de progreso */
+.cajas-slots {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+  margin: 0.75rem 0;
+}
+
+.caja-slot {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  border: 2px dashed var(--gris-medio);
+  background: rgba(0,0,0,0.25);
+  display: grid;
+  place-items: center;
+  transition: border-color 0.3s, background 0.3s;
+}
+
+.caja-slot img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+.caja-slot.slot-acierto {
+  border-color: #10B981;
+  background: rgba(16, 185, 129, 0.15);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
+}
+
+.caja-slot.slot-fallo {
+  border-color: #EF4444;
+  background: rgba(239, 68, 68, 0.12);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.25);
+}
+
+.caja-slot.slot-vacio {
+  border-color: var(--gris-medio);
+}
+
+.caja-slot.slot-animando {
+  animation: popResultado 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Label predicción */
+.cajas-prediccion-label {
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--blanco-suave);
+  margin: 0.75rem 0 0.5rem;
+}
+
+/* Opciones de predicción */
+.cajas-opciones-prediccion {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+}
+
+.cajas-opcion-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.7rem 1.25rem;
+  background: var(--gris-oscuro);
+  border: 2px solid var(--gris-medio);
+  border-radius: var(--radio-btn);
+  color: var(--blanco-suave);
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, transform 0.2s, box-shadow 0.2s;
+  min-width: 90px;
+}
+
+.cajas-opcion-btn img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 6px var(--sombra));
+  transition: filter 0.2s, transform 0.2s;
+}
+
+.cajas-opcion-btn:hover:not(:disabled) {
+  border-color: var(--dorado-claro);
+  background: rgba(212, 160, 23, 0.12);
+  transform: translateY(-3px);
+  box-shadow: 0 0 16px var(--resplandor-dorado);
+}
+
+.cajas-opcion-btn.seleccionada {
+  border-color: var(--dorado-brillo);
+  background: rgba(212, 160, 23, 0.2);
+  box-shadow: 0 0 24px var(--resplandor-dorado);
+  color: var(--dorado-claro);
+}
+
+.cajas-opcion-btn.seleccionada img {
+  filter: drop-shadow(0 0 10px var(--resplandor-dorado));
+  transform: scale(1.1);
+}
+
+.cajas-opcion-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Aviso de repetición */
+.cajas-aviso-repeticion {
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--dorado-claro);
+  background: rgba(212, 160, 23, 0.12);
+  border: 1px solid rgba(212, 160, 23, 0.35);
+  border-radius: 8px;
+  padding: 0.45rem 0.75rem;
+  margin-bottom: 0.6rem;
+  animation: entrarPantalla 0.3s ease;
+}
+
+/* Área de resultado revelado */
+.cajas-resultado-reveal {
+  text-align: center;
+  margin: 0.75rem 0;
+  animation: popResultado 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.cajas-resultado-img {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}
+
+.cajas-resultado-img .objeto-resultado {
+  width: 72px;
+  height: 72px;
+}
+
+.cajas-resultado-texto {
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  display: inline-block;
+}
+
+.cajas-resultado-texto.correcto {
+  color: #10B981;
+  background: rgba(16, 185, 129, 0.18);
+  border: 2px solid #10B981;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.35);
+}
+
+.cajas-resultado-texto.incorrecto {
+  color: #EF4444;
+  background: rgba(239, 68, 68, 0.15);
+  border: 2px solid #EF4444;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.3);
+}
+
+/* Estado visual de las cajas */
+.caja-item.activa .caja-cuerpo {
+  filter: drop-shadow(0 0 16px var(--resplandor-dorado));
+}
+
+.caja-item.activa .caja-img {
+  transform: scale(1.05);
+}
+
+.caja-item.caja-completada {
+  cursor: default;
+}
+
+.caja-item.caja-completada .caja-cuerpo {
+  position: relative;
+  filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.5));
+}
+
+.caja-check {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  background: #10B981;
+  border-radius: 50%;
+  border: 2px solid var(--negro);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 900;
+  color: var(--blanco);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.6);
+  animation: popResultado 0.4s ease;
+}
+
+.caja-item.caja-en-repeticion .caja-cuerpo {
+  filter: drop-shadow(0 0 12px rgba(212, 160, 23, 0.5));
+}
+
+.caja-progreso {
+  font-size: 0.75rem;
+  color: var(--texto-suave);
+  margin: 0.25rem 0 0;
+  text-align: center;
+}
+
+/* Contador de monedas en cabecera de cajas */
+#contador-monedas-cajas {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, var(--cafe), var(--azul-acento));
+  border: 2px solid var(--dorado);
+  border-radius: 12px;
+  padding: 0.4rem 0.8rem;
+  box-shadow: 0 0 16px var(--resplandor-dorado);
+  margin-left: auto;
+}
+
 /* ═══ MISIÓN 3: BOLSA ═══ */
 .bolsa-clic {
   background: none;
@@ -1653,6 +2039,15 @@ button {
 /* ── Responsive ── */
 @media (max-width: 480px) {
   .pantalla { padding: 0.75rem; }
+  #pantalla-inicio.activa { padding: 0.5rem 0.5rem 0.75rem; }
+  #pantalla-inicio .grupo-botones .btn {
+    padding: 0.6rem 0.4rem;
+    font-size: 0.78rem;
+    max-width: none;
+  }
+  #pantalla-inicio .personaje-principal img {
+    max-height: min(200px, 28vh);
+  }
   .mision .contenido-pantalla { padding: 1rem; }
   .cajas-contenedor { gap: 0.5rem; }
   .caja-cuerpo { width: 90px; height: 90px; }
@@ -1710,15 +2105,11 @@ button {
     width: 60px;
     top: -30px;
   }
-}g {
-    width: 24px;
-    height: 24px;
-  }
-  
+
   .punto-nombre {
     font-size: 0.65rem;
   }
-  
+
   .michi-viajero {
     width: 36px;
     height: 36px;

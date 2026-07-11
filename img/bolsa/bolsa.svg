@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200" width="160" height="200">
-  <!-- REEMPLAZAR: imagen de la bolsa sorpresa -->
-  <ellipse cx="80" cy="170" rx="55" ry="25" fill="#8D6E63"/>
-  <path d="M50 80 Q80 40 110 80 L120 160 Q80 190 40 160 Z" fill="#A1887F" stroke="#5D4037" stroke-width="3"/>
-  <path d="M55 75 Q80 55 105 75" fill="none" stroke="#5D4037" stroke-width="4"/>
-  <text x="80" y="120" text-anchor="middle" font-size="14" fill="#FFF">?</text>
-</svg>

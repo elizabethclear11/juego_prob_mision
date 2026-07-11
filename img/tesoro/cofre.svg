@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 160" width="200" height="160">
-  <!-- REEMPLAZAR: imagen del cofre del tesoro -->
-  <rect x="30" y="70" width="140" height="80" rx="8" fill="#8D6E63" stroke="#5D4037" stroke-width="3"/>
-  <path d="M30 70 Q100 20 170 70" fill="#A1887F" stroke="#5D4037" stroke-width="3"/>
-  <rect x="85" y="95" width="30" height="25" rx="4" fill="#FFD700" stroke="#F9A825" stroke-width="2"/>
-  <circle cx="100" cy="107" r="5" fill="#F57F17"/>
-</svg>

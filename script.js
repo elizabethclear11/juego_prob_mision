@@ -66,7 +66,9 @@
     posicionDado: 0,
     dadoLanzamientos: 0,
     dadoAciertos: 0,
-    monedasDado: 0
+    monedasDado: 0,
+    // Estado persistente de Misión 2
+    estadoCajas: null
   };
 
   let estado = cargarEstado();
@@ -536,81 +538,356 @@
   /* ═══════════════════════════════════════
      MISIÓN 2: CAJAS
      ═══════════════════════════════════════ */
+
+  /**
+   * Estado por caja:
+   *   estado: 'pendiente' | 'en-progreso' | 'en-repeticion' | 'completada'
+   *   oportunidadActual: índice 0-2 de la ronda inicial
+   *   predicciones[i]: { prediccion, resultado, acerto, isInitialAttempt, hasAwardedPoints }
+   *   completedPredictions: cuántas oportunidades ya se acertaron
+   *   pendingRetries: índices que fallaron en ronda inicial
+   *   retryIndex: posición dentro de pendingRetries
+   */
+  function crearEstadoCajaDefault(id) {
+    return {
+      id,
+      estado: 'pendiente',
+      oportunidadActual: 0,
+      predicciones: [],
+      completedPredictions: 0,
+      pendingRetries: [],
+      retryIndex: 0
+    };
+  }
+
+  function crearEstadoCajasDefault() {
+    return {
+      cajas: [
+        crearEstadoCajaDefault('azul'),
+        crearEstadoCajaDefault('bronce'),
+        crearEstadoCajaDefault('hierro')
+      ],
+      cajaActivaIdx: 0,
+      misionCompleta: false,
+      llaveEntregada: false
+    };
+  }
+
   function initMisionCajas() {
-    const contenedor = document.getElementById('cajas-contenedor');
-    const resultado = document.getElementById('resultado-caja');
-    const registro = document.getElementById('registro-cajas');
-    const mensaje = document.getElementById('mensaje-cajas');
-    const btnContinuar = document.getElementById('btn-cajas-continuar');
+    /* ── Referencias DOM ─────────────────────────────────────── */
+    const panelActivo     = document.getElementById('cajas-panel-activo');
+    const cajaActualEl    = document.getElementById('cajas-caja-actual');
+    const oportunidadEl   = document.getElementById('cajas-oportunidad');
+    const slotsEl         = document.getElementById('cajas-slots');
+    const opcionMoneda    = document.getElementById('cajas-opcion-moneda');
+    const opcionPiedra    = document.getElementById('cajas-opcion-piedra');
+    const avisoRepeticion = document.getElementById('cajas-aviso-repeticion');
+    const resultadoReveal = document.getElementById('cajas-resultado-reveal');
+    const resultadoImg    = document.getElementById('cajas-resultado-img');
+    const resultadoTexto  = document.getElementById('cajas-resultado-texto');
+    const btnAbrir        = document.getElementById('btn-abrir-caja');
+    const contenedor      = document.getElementById('cajas-contenedor');
+    const mensaje         = document.getElementById('mensaje-cajas');
+    const btnContinuar    = document.getElementById('btn-cajas-continuar');
+    const llaveEl         = document.getElementById('cajas-llave-final');
+    const animMoneda      = document.getElementById('animacion-moneda-cajas');
+    const cntMonedas      = document.getElementById('numero-monedas-cajas');
+    const btnInfoProb     = document.getElementById('btn-info-prob');
+    const probTexto       = document.getElementById('cajas-prob-texto');
 
-    cajasAbiertas = 0;
-    resultado.innerHTML = '';
-    registro.innerHTML = '';
-    btnContinuar.classList.add('oculto');
-    mensaje.textContent = 'Abre las cajas que quieras';
+    const NOMBRES = { azul: 'Caja Azul', bronce: 'Caja Bronce', hierro: 'Caja Hierro' };
+    const IMGS_CAJA = { azul: IMG.cajas.azul, bronce: IMG.cajas.bronce, hierro: IMG.cajas.hierro };
 
-    const nombresCaja = { azul: 'Azul', verde: 'Bronce', roja: 'Hierro' };
-    const imgsCaja = { azul: IMG.cajas.azul, verde: IMG.cajas.bronce, roja: IMG.cajas.hierro };
+    /* ── Inicializar estado persistente ─────────────────────── */
+    if (!estado.estadoCajas) {
+      estado.estadoCajas = crearEstadoCajasDefault();
+    }
+    const sc = estado.estadoCajas;
 
-    contenedor.querySelectorAll('.caja-item').forEach(caja => {
-      caja.classList.remove('abierta', 'deshabilitada');
-      const nombre = caja.dataset.caja;
-      const cuerpo = caja.querySelector('.caja-cuerpo');
-      cuerpo.innerHTML = '';
-      cuerpo.appendChild(crearImg(imgsCaja[nombre] || caja.dataset.img, 'Caja', 'caja-img'));
+    let prediccionSeleccionada = null;
+    let abriendo = false;
 
-      caja.onclick = async () => {
-        if (caja.classList.contains('abierta')) return;
+    /* ── Sincronizar contador de monedas ────────────────────── */
+    function sincronizarContador() {
+      if (cntMonedas) cntMonedas.textContent = estado.monedasDado;
+    }
+    sincronizarContador();
 
-        // Efecto de partículas al hacer clic
-        const rect = caja.getBoundingClientRect();
-        crearParticulas(rect.left + rect.width / 2, rect.top + rect.height / 2, 'var(--dorado)');
+    /* ── Toggle explicación probabilidad ────────────────────── */
+    if (btnInfoProb) {
+      // Eliminar listener previo reasignando
+      btnInfoProb.onclick = () => probTexto.classList.toggle('oculto');
+    }
 
-        const prob = parseFloat(caja.dataset.prob);
-        const hayMoneda = Math.random() < prob;
+    /* ── Actualizar visual de las tres cajas ────────────────── */
+    function actualizarVisualesCajas() {
+      contenedor.querySelectorAll('.caja-item').forEach(cajaEl => {
+        const id = cajaEl.dataset.caja;
+        const cajaSt = sc.cajas.find(c => c.id === id);
+        const cuerpo = cajaEl.querySelector('.caja-cuerpo');
 
-        caja.classList.add('abierta');
-        cajasAbiertas++;
+        cajaEl.classList.remove('activa', 'caja-completada', 'caja-en-progreso', 'caja-en-repeticion', 'abierta');
 
-        await sleep(500);
+        if (!cajaSt) return;
 
-        const srcObjeto = hayMoneda ? IMG.moneda : IMG.piedra;
-        const altObjeto = hayMoneda ? 'Moneda dorada' : 'Piedra gris';
-
-        cuerpo.innerHTML = '';
-        cuerpo.appendChild(crearImg(srcObjeto, altObjeto, 'objeto-resultado'));
-
-        resultado.innerHTML = '';
-        resultado.appendChild(crearImg(srcObjeto, altObjeto, 'objeto-resultado'));
-        resultado.style.animation = 'none';
-        void resultado.offsetWidth;
-        resultado.style.animation = '';
-        destello(caja);
-        destello(resultado);
-
-        const texto = hayMoneda
-          ? mensajeAleatorio(MENSAJES.suerte)
-          : mensajeAleatorio(MENSAJES.sinMoneda);
-        mensaje.textContent = texto;
-
-        const etiqueta = nombresCaja[nombre] || nombre;
-
-        estado.resultadosCajas.push({ caja: nombre, moneda: hayMoneda });
-        guardarEstado();
-
-        const chip = document.createElement('span');
-        chip.className = 'chip-resultado';
-        chip.appendChild(crearImg(srcObjeto, altObjeto));
-        chip.appendChild(document.createTextNode(etiqueta));
-        registro.appendChild(chip);
-
-        if (cajasAbiertas >= cajasMinimo) {
-          completarMision('cajas');
-          btnContinuar.classList.remove('oculto');
-          mensaje.textContent = '¡Desafío completado! Puedes seguir o continuar.';
+        if (cajaSt.estado === 'completada') {
+          cajaEl.classList.add('caja-completada');
+          cuerpo.innerHTML = '';
+          cuerpo.appendChild(crearImg(IMGS_CAJA[id], NOMBRES[id], 'caja-img'));
+          const check = document.createElement('div');
+          check.className = 'caja-check';
+          check.textContent = '✓';
+          cuerpo.appendChild(check);
+        } else {
+          cuerpo.innerHTML = '';
+          cuerpo.appendChild(crearImg(IMGS_CAJA[id], NOMBRES[id], 'caja-img'));
+          if (cajaSt.estado === 'en-progreso') cajaEl.classList.add('caja-en-progreso');
+          if (cajaSt.estado === 'en-repeticion') cajaEl.classList.add('caja-en-repeticion');
         }
+
+        const progresoEl = document.getElementById('progreso-' + id);
+        if (progresoEl) {
+          progresoEl.textContent = cajaSt.completedPredictions + ' de 3 completadas';
+        }
+      });
+    }
+
+    /* ── Actualizar slots de la caja activa ─────────────────── */
+    function actualizarSlots(cajaSt) {
+      slotsEl.querySelectorAll('.caja-slot').forEach((slot, i) => {
+        slot.className = 'caja-slot';
+        slot.innerHTML = '';
+        const pred = cajaSt.predicciones[i];
+        if (!pred) return;
+        if (pred.acerto) {
+          slot.classList.add('slot-acierto');
+          slot.appendChild(crearImg(pred.resultado === 'moneda' ? IMG.moneda : IMG.piedra, pred.resultado));
+        } else if (pred.resultado !== undefined) {
+          slot.classList.add('slot-fallo');
+          slot.appendChild(crearImg(pred.resultado === 'moneda' ? IMG.moneda : IMG.piedra, pred.resultado));
+        } else {
+          slot.classList.add('slot-vacio');
+        }
+      });
+    }
+
+    /* ── Renderizar panel activo ────────────────────────────── */
+    function renderPanelActivo() {
+      if (sc.misionCompleta) {
+        panelActivo.classList.add('oculto');
+        return;
+      }
+      panelActivo.classList.remove('oculto');
+
+      const cajaSt = sc.cajas[sc.cajaActivaIdx];
+      cajaActualEl.textContent = NOMBRES[cajaSt.id];
+
+      const esRepeticion = cajaSt.estado === 'en-repeticion';
+      avisoRepeticion.classList.toggle('oculto', !esRepeticion);
+
+      if (esRepeticion) {
+        oportunidadEl.textContent =
+          `Repetición ${cajaSt.retryIndex + 1} de ${cajaSt.pendingRetries.length}`;
+      } else {
+        oportunidadEl.textContent = `Oportunidad ${cajaSt.oportunidadActual + 1} de 3`;
+      }
+
+      actualizarSlots(cajaSt);
+
+      resultadoReveal.classList.add('oculto');
+      resultadoImg.innerHTML = '';
+      resultadoTexto.textContent = '';
+
+      prediccionSeleccionada = null;
+      opcionMoneda.classList.remove('seleccionada');
+      opcionPiedra.classList.remove('seleccionada');
+      opcionMoneda.disabled = false;
+      opcionPiedra.disabled = false;
+      btnAbrir.disabled = true;
+
+      contenedor.querySelectorAll('.caja-item').forEach(el => {
+        el.classList.toggle('activa', el.dataset.caja === cajaSt.id);
+      });
+
+      mensaje.textContent = 'Escoge qué objeto crees que saldrá de la caja.';
+    }
+
+    /* ── Selección de predicción ────────────────────────────── */
+    [opcionMoneda, opcionPiedra].forEach(btn => {
+      btn.onclick = () => {
+        if (abriendo) return;
+        if (!resultadoReveal.classList.contains('oculto')) return;
+        prediccionSeleccionada = btn.dataset.opcion;
+        opcionMoneda.classList.toggle('seleccionada', btn === opcionMoneda);
+        opcionPiedra.classList.toggle('seleccionada', btn === opcionPiedra);
+        btnAbrir.disabled = false;
       };
     });
+
+    /* ── Abrir caja ─────────────────────────────────────────── */
+    btnAbrir.onclick = async () => {
+      if (abriendo || !prediccionSeleccionada || sc.misionCompleta) return;
+
+      const cajaSt = sc.cajas[sc.cajaActivaIdx];
+      if (cajaSt.estado === 'completada') return;
+
+      abriendo = true;
+      btnAbrir.disabled = true;
+      opcionMoneda.disabled = true;
+      opcionPiedra.disabled = true;
+
+      const esRepeticion = cajaSt.estado === 'en-repeticion';
+
+      /* Generar resultado 50/50 — una sola vez por intento */
+      const hayMoneda = Math.random() < 0.5;
+      const resultado = hayMoneda ? 'moneda' : 'piedra';
+      const acerto = (prediccionSeleccionada === resultado);
+
+      /* Animación de apertura */
+      const cajaEl = contenedor.querySelector(`.caja-item[data-caja="${cajaSt.id}"]`);
+      if (cajaEl) {
+        const rect = cajaEl.getBoundingClientRect();
+        crearParticulas(rect.left + rect.width / 2, rect.top + rect.height / 2, 'var(--dorado)');
+        cajaEl.classList.add('abierta');
+      }
+      await sleep(500);
+
+      /* ── Ronda inicial ─────────────────────────────────────── */
+      if (!esRepeticion) {
+        const idxOp = cajaSt.oportunidadActual;
+        cajaSt.predicciones[idxOp] = {
+          prediccion: prediccionSeleccionada,
+          resultado,
+          acerto,
+          isInitialAttempt: true,
+          hasAwardedPoints: false
+        };
+
+        if (acerto) {
+          cajaSt.predicciones[idxOp].hasAwardedPoints = true;
+          cajaSt.completedPredictions++;
+          estado.monedasDado++;
+          sincronizarContador();
+          animMoneda.classList.remove('oculto');
+          setTimeout(() => animMoneda.classList.add('oculto'), 2000);
+          if (cntMonedas) {
+            cntMonedas.parentElement.style.animation = 'none';
+            void cntMonedas.parentElement.offsetWidth;
+            cntMonedas.parentElement.style.animation = 'pulsoBoton 0.5s ease';
+          }
+        } else {
+          cajaSt.pendingRetries.push(idxOp);
+        }
+
+        cajaSt.oportunidadActual++;
+
+        if (cajaSt.oportunidadActual >= 3) {
+          cajaSt.estado = cajaSt.pendingRetries.length > 0 ? 'en-repeticion' : 'completada';
+        } else {
+          cajaSt.estado = 'en-progreso';
+        }
+
+      /* ── Fase repetición (no suma puntos) ───────────────────── */
+      } else {
+        if (acerto) {
+          cajaSt.completedPredictions++;
+          cajaSt.retryIndex++;
+          if (cajaSt.retryIndex >= cajaSt.pendingRetries.length) {
+            cajaSt.estado = 'completada';
+          }
+        }
+        /* Si falla, retryIndex no avanza → repite el mismo */
+      }
+
+      guardarEstado();
+      actualizarVisualesCajas();
+      actualizarSlots(cajaSt);
+
+      /* Revelar resultado */
+      resultadoReveal.classList.remove('oculto');
+      resultadoImg.innerHTML = '';
+      resultadoImg.appendChild(crearImg(
+        hayMoneda ? IMG.moneda : IMG.piedra,
+        hayMoneda ? 'Moneda dorada' : 'Piedra gris',
+        'objeto-resultado'
+      ));
+      destello(resultadoReveal);
+
+      if (acerto) {
+        resultadoTexto.textContent = '¡Felicidades! Predijiste correctamente el resultado.';
+        resultadoTexto.className = 'cajas-resultado-texto correcto';
+      } else {
+        resultadoTexto.textContent = 'Esta vez no acertaste. Tendrás que volver a intentarlo.';
+        resultadoTexto.className = 'cajas-resultado-texto incorrecto';
+      }
+
+      await sleep(1400);
+
+      if (cajaEl) cajaEl.classList.remove('abierta');
+
+      /* ── ¿Caja completada? ──────────────────────────────────── */
+      if (cajaSt.estado === 'completada') {
+        mensaje.textContent = `¡${NOMBRES[cajaSt.id]} completada!`;
+
+        const todasCompletas = sc.cajas.every(c => c.estado === 'completada');
+        if (todasCompletas && !sc.misionCompleta) {
+          sc.misionCompleta = true;
+          sc.llaveEntregada = true;
+          guardarEstado();
+          completarMision('cajas');
+          await sleep(600);
+          mostrarLlaveFinal();
+          abriendo = false;
+          return;
+        }
+
+        /* Avanzar a la siguiente caja incompleta */
+        const siguienteIdx = sc.cajas.findIndex(
+          (c, i) => i > sc.cajaActivaIdx && c.estado !== 'completada'
+        );
+        if (siguienteIdx !== -1) {
+          sc.cajaActivaIdx = siguienteIdx;
+          if (sc.cajas[siguienteIdx].estado === 'pendiente') {
+            sc.cajas[siguienteIdx].estado = 'en-progreso';
+          }
+          guardarEstado();
+          await sleep(400);
+        }
+      }
+
+      abriendo = false;
+      opcionMoneda.disabled = false;
+      opcionPiedra.disabled = false;
+      renderPanelActivo();
+    };
+
+    /* ── Llave final ────────────────────────────────────────── */
+    function mostrarLlaveFinal() {
+      panelActivo.classList.add('oculto');
+      mensaje.textContent = '¡Misión completada! Ganaste la llave para abrir el siguiente nivel.';
+      llaveEl.classList.remove('oculto');
+      const rect = llaveEl.getBoundingClientRect();
+      crearParticulas(rect.left + rect.width / 2, rect.top + rect.height / 2, 'var(--dorado-brillo)');
+      setTimeout(() => btnContinuar.classList.remove('oculto'), 2000);
+    }
+
+    /* ── Restaurar si misión ya estaba completada ───────────── */
+    if (sc.misionCompleta) {
+      actualizarVisualesCajas();
+      panelActivo.classList.add('oculto');
+      llaveEl.classList.remove('oculto');
+      mensaje.textContent = '¡Misión completada! Ganaste la llave para abrir el siguiente nivel.';
+      btnContinuar.classList.remove('oculto');
+      return;
+    }
+
+    /* ── Asegurar estado inicial de la caja activa ──────────── */
+    const cajaSt = sc.cajas[sc.cajaActivaIdx];
+    if (cajaSt.estado === 'pendiente') cajaSt.estado = 'en-progreso';
+
+    /* ── Render inicial ─────────────────────────────────────── */
+    actualizarVisualesCajas();
+    renderPanelActivo();
   }
 
   /* ═══════════════════════════════════════
@@ -934,6 +1211,7 @@
 
   function reiniciarJuego() {
     estado = { ...estadoDefault };
+    estado.estadoCajas = null;
     guardarEstado();
     estado.posicionDado = 0;
     actualizarMapa();

@@ -16,7 +16,6 @@
     <div class="contenido-pantalla">
       <img src="img/logo-titulo.png" alt="" class="logo-juego" id="logo-juego">
       <h1 class="titulo-juego">MISIÓN PROBABILIDAD</h1>
-      <p class="subtitulo">Aventura de exploración con Michi Money</p>
       <p class="edad-recomendada">Para exploradores de 10 a 14 años</p>
 
       <div id="personajePrincipal" class="zona-imagen personaje-principal">
@@ -247,43 +246,116 @@
       <header class="cabecera-mision">
         <button class="btn btn-mini" id="btn-cajas-mapa">← Mapa</button>
         <h2>Misión 2: Cajas misteriosas</h2>
+        <!-- Contador de monedas compartido con misión 1 -->
+        <div class="contador-monedas" id="contador-monedas-cajas">
+          <img src="img/tesoro/cofre.png" alt="Cofre" class="icono-cofre-contador">
+          <span class="numero-monedas" id="numero-monedas-cajas">0</span>
+        </div>
       </header>
 
-      <p class="narracion">Observa las pistas (🟡 = moneda, ⚫ = piedra) y elige</p>
+      <!-- Explicación de probabilidad -->
+      <div class="cajas-info-prob" id="cajas-info-prob">
+        <button class="btn-info-prob" id="btn-info-prob" aria-label="Ver explicación de probabilidad">
+          <span class="icono-info">?</span> ¿Cómo funciona la probabilidad?
+        </button>
+        <div class="cajas-prob-texto oculto" id="cajas-prob-texto">
+          En cada intento puede salir una moneda o una piedra. Como existen dos resultados posibles con la misma posibilidad,
+          tienes un <strong>50 % de probabilidad</strong> de acertar y un <strong>50 % de probabilidad</strong> de fallar.
+        </div>
+      </div>
 
+      <!-- Banner decorativo -->
       <div id="imagenCajas" class="zona-imagen cajas-banner">
         <img src="img/cajas/cajas-banner.png" alt="Tres cajas misteriosas">
       </div>
 
+      <!-- Panel activo: caja seleccionada, oportunidad actual y predicción -->
+      <div class="cajas-panel-activo" id="cajas-panel-activo">
+
+        <!-- Indicador de caja y oportunidad -->
+        <div class="cajas-indicador" id="cajas-indicador">
+          <span class="cajas-caja-actual" id="cajas-caja-actual">Caja Azul</span>
+          <span class="cajas-oportunidad" id="cajas-oportunidad">Oportunidad 1 de 3</span>
+        </div>
+
+        <!-- Slots de progreso (3 espacios ocultos por caja) -->
+        <div class="cajas-slots" id="cajas-slots">
+          <div class="caja-slot" data-slot="0"></div>
+          <div class="caja-slot" data-slot="1"></div>
+          <div class="caja-slot" data-slot="2"></div>
+        </div>
+
+        <!-- Predicción: elegir Moneda o Piedra -->
+        <p class="cajas-prediccion-label">Escoge qué objeto crees que saldrá de la caja:</p>
+        <div class="cajas-opciones-prediccion" id="cajas-opciones-prediccion">
+          <button class="cajas-opcion-btn" id="cajas-opcion-moneda" data-opcion="moneda" type="button">
+            <img src="img/objetos/moneda-dorada.png" alt="Moneda">
+            <span>Moneda</span>
+          </button>
+          <button class="cajas-opcion-btn" id="cajas-opcion-piedra" data-opcion="piedra" type="button">
+            <img src="img/objetos/piedra-gris.png" alt="Piedra">
+            <span>Piedra</span>
+          </button>
+        </div>
+
+        <!-- Mensaje de fase repetición -->
+        <div class="cajas-aviso-repeticion oculto" id="cajas-aviso-repeticion">
+          Repetición: debes acertar para completar la caja. Esta oportunidad ya no suma puntos.
+        </div>
+
+        <!-- Resultado revelado -->
+        <div class="cajas-resultado-reveal oculto" id="cajas-resultado-reveal">
+          <div class="cajas-resultado-img" id="cajas-resultado-img"></div>
+          <p class="cajas-resultado-texto" id="cajas-resultado-texto"></p>
+        </div>
+
+        <!-- Botón abrir -->
+        <button class="btn btn-primario btn-grande" id="btn-abrir-caja" disabled>Abrir caja</button>
+      </div>
+
+      <!-- Las tres cajas visuales con su estado -->
       <div class="cajas-contenedor" id="cajas-contenedor">
-        <div class="caja-item" data-caja="azul" data-prob="0.875" data-img="img/cajas/caja-azul.png">
+        <div class="caja-item" data-caja="azul" data-img="img/cajas/caja-azul.png">
           <div class="caja-cuerpo">
             <img src="img/cajas/caja-azul.png" alt="Caja azul" class="caja-img">
           </div>
           <p class="caja-nombre">Caja Azul</p>
-          <div class="pista-visual">🟡🟡🟡🟡🟡🟡🟡⚫</div>
+          <p class="caja-progreso" id="progreso-azul">0 de 3 completadas</p>
         </div>
 
-        <div class="caja-item" data-caja="verde" data-prob="0.5" data-img="img/cajas/caja-bronce.png">
+        <div class="caja-item" data-caja="bronce" data-img="img/cajas/caja-bronce.png">
           <div class="caja-cuerpo">
             <img src="img/cajas/caja-bronce.png" alt="Caja bronce" class="caja-img">
           </div>
           <p class="caja-nombre">Caja Bronce</p>
-          <div class="pista-visual">🟡🟡🟡🟡⚫⚫⚫⚫</div>
+          <p class="caja-progreso" id="progreso-bronce">0 de 3 completadas</p>
         </div>
 
-        <div class="caja-item" data-caja="roja" data-prob="0.25" data-img="img/cajas/caja-hierro.png">
+        <div class="caja-item" data-caja="hierro" data-img="img/cajas/caja-hierro.png">
           <div class="caja-cuerpo">
             <img src="img/cajas/caja-hierro.png" alt="Caja hierro" class="caja-img">
           </div>
           <p class="caja-nombre">Caja Hierro</p>
-          <div class="pista-visual">🟡🟡⚫⚫⚫⚫⚫⚫</div>
+          <p class="caja-progreso" id="progreso-hierro">0 de 3 completadas</p>
         </div>
       </div>
 
-      <div class="resultado-caja" id="resultado-caja"></div>
-      <div class="registro-resultados" id="registro-cajas"></div>
-      <p class="mensaje-juego" id="mensaje-cajas">Abre las cajas que quieras explorar.</p>
+      <p class="mensaje-juego" id="mensaje-cajas">Predice el contenido y abre las cajas.</p>
+
+      <!-- Animación de moneda ganada (reutiliza el mismo estilo) -->
+      <div class="animacion-moneda oculto" id="animacion-moneda-cajas">
+        <img src="img/objetos/moneda-dorada.png" alt="Moneda ganada" class="moneda-ganada">
+        <p class="texto-moneda">¡+1 Moneda!</p>
+      </div>
+
+      <!-- Finalización: llave -->
+      <div class="cofre-final oculto" id="cajas-llave-final">
+        <div class="cofre-abierto-llave">
+          <img src="img/tesoro/cofre-abierto.png" alt="Cofre abierto">
+          <img src="img/objetos/llave-antigua.png" alt="Llave" class="llave-flotante">
+        </div>
+        <p class="texto-llave">¡Misión completada! Ganaste la llave para abrir el siguiente nivel.</p>
+      </div>
 
       <button class="btn btn-primario oculto" id="btn-cajas-continuar">Misión completada → Volver al mapa</button>
     </div>
