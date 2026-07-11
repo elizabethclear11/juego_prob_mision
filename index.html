@@ -172,6 +172,16 @@
     </div>
   </section>
 
+  <!-- Modal resultado del dado -->
+  <dialog id="modal-resultado-dado" class="modal modal-resultado-dado">
+    <div class="modal-contenido modal-resultado-dado-contenido">
+      <img id="modal-dado-gato" src="" alt="" class="modal-dado-gato">
+      <h2 id="modal-dado-titulo"></h2>
+      <p id="modal-dado-mensaje"></p>
+      <button class="btn btn-primario" id="btn-cerrar-modal-dado">¡Entendido!</button>
+    </div>
+  </dialog>
+
   <!-- MISIÓN 1: DADO -->
   <section id="pantalla-dado" class="pantalla mision">
     <div class="contenido-pantalla">
@@ -369,7 +379,7 @@
         <h2>Misión 3: Bolsa sorpresa</h2>
       </header>
 
-      <p class="narracion">¡Toca la bolsa y descubre qué hay dentro!</p>
+      <p class="narracion" id="bolsa-narracion">¡Toca la bolsa y descubre qué hay dentro!</p>
 
       <div id="imagenBolsa" class="zona-imagen bolsa-zona">
         <button class="bolsa-clic" id="bolsa-clic" type="button" aria-label="Sacar ficha de la bolsa">
@@ -378,11 +388,13 @@
       </div>
 
       <div class="ficha-saliente" id="ficha-saliente"></div>
-      <p class="mensaje-juego" id="mensaje-bolsa">Toca la bolsa para sacar una ficha.</p>
-      <p class="contador-intentos" id="contador-bolsa">Intentos: 0</p>
+      <p class="mensaje-juego" id="mensaje-bolsa">Toca la bolsa para observar cinco fichas de muestra.</p>
+      <p class="contador-intentos" id="contador-bolsa">Muestra 0 de 5</p>
 
       <div class="grafico-contenedor oculto" id="grafico-bolsa">
-        <h3>Lo que has sacado</h3>
+        <h3>Resultados observados</h3>
+        <p class="bolsa-stats-linea" id="bolsa-stats-conteo">Azules: 0 · Plateadas: 0</p>
+        <p class="bolsa-stats-linea" id="bolsa-stats-porcentaje">Azules observadas: 0 % · Plateadas observadas: 0 %</p>
         <div class="grafico-barras">
           <div class="barra-grupo">
             <div class="barra barra-azul" id="barra-azul" style="--altura: 10%"></div>
@@ -393,6 +405,37 @@
             <span class="barra-etiqueta">Plata<br><strong id="num-roja">0</strong></span>
           </div>
         </div>
+      </div>
+
+      <div class="grafico-contenedor oculto" id="bolsa-prediccion-panel">
+        <h3 id="bolsa-prediccion-titulo">Según las fichas que observaste, ¿cuál crees que es la composición real de la bolsa?</h3>
+        <p class="bolsa-aviso-prediccion">Solo tienes una oportunidad. Revisa tu respuesta antes de continuar.</p>
+        <div class="bolsa-opciones-prediccion" id="bolsa-opciones-prediccion"></div>
+        <button class="btn btn-primario" id="btn-bolsa-confirmar" type="button" disabled>Confirmar predicción</button>
+      </div>
+
+      <div class="grafico-contenedor oculto" id="bolsa-revelacion-panel">
+        <h3>Contenido real de la bolsa</h3>
+        <div class="bolsa-revelacion-grupos">
+          <div class="bolsa-grupo-fichas">
+            <span class="bolsa-grupo-titulo">Azules encontradas: <strong id="bolsa-revel-azul-count">0</strong></span>
+            <div class="bolsa-fichas-fila" id="bolsa-fichas-azul"></div>
+          </div>
+          <div class="bolsa-grupo-fichas">
+            <span class="bolsa-grupo-titulo">Plateadas encontradas: <strong id="bolsa-revel-plata-count">0</strong></span>
+            <div class="bolsa-fichas-fila" id="bolsa-fichas-plata"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grafico-contenedor oculto" id="bolsa-resultado-panel">
+        <div class="bolsa-resultado-texto" id="bolsa-resultado-texto"></div>
+        <div class="bolsa-explicacion-educativa" id="bolsa-explicacion-educativa"></div>
+      </div>
+
+      <div class="animacion-moneda oculto" id="animacion-moneda-bolsa">
+        <img src="img/objetos/moneda-dorada.png" alt="Puntos ganados" class="moneda-ganada">
+        <p class="texto-moneda">¡+10 puntos!</p>
       </div>
 
       <button class="btn btn-primario oculto" id="btn-bolsa-continuar">Misión completada → Continuar</button>

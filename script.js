@@ -68,15 +68,15 @@
     dadoAciertos: 0,
     monedasDado: 0,
     // Estado persistente de Misión 2
-    estadoCajas: null
+    estadoCajas: null,
+    // Estado persistente de Misión 3
+    estadoBolsa: null
   };
 
   let estado = cargarEstado();
 
   /* Estado temporal de misiones activas */
   let dadoMeta = 15;
-  let bolsaIntentos = 0;
-  let bolsaMinimoGrafico = 8;
   let ruletaGiros = 0;
   let ruletaMinimo = 5;
   let cajasAbiertas = 0;
@@ -342,6 +342,13 @@
     const cofreCerrado = document.getElementById('cofre-cerrado');
     const cofreAbiertoLlave = document.getElementById('cofre-abierto-llave');
 
+    // Modal de resultado
+    const modalResultado = document.getElementById('modal-resultado-dado');
+    const modalGato      = document.getElementById('modal-dado-gato');
+    const modalTitulo    = document.getElementById('modal-dado-titulo');
+    const modalMensaje   = document.getElementById('modal-dado-mensaje');
+    const btnCerrarModal = document.getElementById('btn-cerrar-modal-dado');
+
     let posicion = estado.posicionDado || 0;
     let lanzando = false;
     let totalLanzamientos = estado.dadoLanzamientos || 0;
@@ -358,7 +365,6 @@
     for (let i = 0; i <= dadoMeta; i++) {
       const paso = document.createElement('div');
       paso.className = 'paso-sendero' + (i === posicion ? ' activo' : '') + (i === dadoMeta ? ' meta' : '');
-      // Solo números, excepto en la meta que ponemos un cofre
       paso.textContent = i === dadoMeta ? '🎁' : i;
       paso.dataset.paso = i;
       sendero.appendChild(paso);
@@ -375,20 +381,16 @@
       mensaje.textContent = '¡Meta alcanzada!';
       btnLanzar.classList.add('oculto');
       cofreFinal.classList.remove('oculto');
-      
-      // Mostrar cofre abierto con llave después de un momento
       setTimeout(() => {
         cofreCerrado.classList.add('oculto');
         cofreAbiertoLlave.classList.remove('oculto');
       }, 1000);
-      
       btnContinuar.classList.remove('oculto');
       return;
     }
 
     mensaje.textContent = 'Ingresa tu predicción (1-6) y lanza el dado';
 
-    // Actualizar estadísticas de predicción
     actualizarEstadisticas();
 
     function actualizarEstadisticas() {
@@ -400,10 +402,37 @@
       }
     }
 
+    /* Mostrar modal con gato según resultado */
+    function mostrarModalResultado(correcto, resultadoDado, pasosReales) {
+      return new Promise(resolve => {
+        if (correcto) {
+          modalGato.src = 'img/personajes/michi-celebrando.png';
+          modalGato.alt = 'Michi celebrando';
+          modalTitulo.textContent = '¡Felicidades!';
+          modalMensaje.textContent = `Predijiste correctamente. Salió ${resultadoDado}. Avanzas ${pasosReales} paso${pasosReales !== 1 ? 's' : ''}.`;
+          modalResultado.className = 'modal modal-resultado-dado modal-acierto';
+        } else {
+          modalGato.src = 'img/personajes/gato_desagrado.png';
+          modalGato.alt = 'Michi triste';
+          modalTitulo.textContent = 'Esta vez no fue';
+          modalMensaje.textContent = `Tu predicción fue incorrecta. Salió ${resultadoDado}. Avanzas ${pasosReales} paso${pasosReales !== 1 ? 's' : ''}.`;
+          modalResultado.className = 'modal modal-resultado-dado modal-fallo';
+        }
+
+        modalResultado.showModal();
+
+        const cerrar = () => {
+          modalResultado.close();
+          btnCerrarModal.removeEventListener('click', cerrar);
+          resolve();
+        };
+        btnCerrarModal.addEventListener('click', cerrar);
+      });
+    }
+
     btnLanzar.onclick = async () => {
       if (lanzando || posicion >= dadoMeta) return;
 
-      // Validar predicción
       const prediccion = parseInt(prediccionInput.value);
       if (!prediccion || prediccion < 1 || prediccion > 6) {
         mensaje.textContent = '⚠️ Ingresa un número del 1 al 6 primero';
@@ -416,37 +445,24 @@
       prediccionResultado.classList.add('oculto');
       animacionMoneda.classList.add('oculto');
 
-      // Efecto de partículas al lanzar
       const rect = dado.getBoundingClientRect();
       crearParticulas(rect.left + rect.width / 2, rect.top + rect.height / 2, 'var(--dorado-brillo)');
 
-      /* Animación de giro */
       dado.classList.add('girando');
-
       await sleep(900);
 
       const resultado = Math.floor(Math.random() * 6) + 1;
-      
-      // Cambiar la imagen del dado a la carilla correspondiente
       dadoImg.src = `img/dados/dado${resultado}.png`;
-      
       dado.classList.remove('girando');
       destello(dado);
 
-      // Verificar predicción
       totalLanzamientos++;
       const predictionCorrecta = (prediccion === resultado);
       if (predictionCorrecta) {
         aciertos++;
         monedas++;
-        
-        // Animación de moneda ganada
         animacionMoneda.classList.remove('oculto');
-        setTimeout(() => {
-          animacionMoneda.classList.add('oculto');
-        }, 2000);
-        
-        // Actualizar contador de monedas con animación
+        setTimeout(() => animacionMoneda.classList.add('oculto'), 2000);
         if (contadorMonedas) {
           contadorMonedas.textContent = monedas;
           contadorMonedas.parentElement.style.animation = 'none';
@@ -455,21 +471,16 @@
         }
       }
 
-      // Guardar estadísticas
       estado.dadoLanzamientos = totalLanzamientos;
       estado.dadoAciertos = aciertos;
       estado.monedasDado = monedas;
 
-      // Mostrar resultado de predicción
       prediccionResultado.classList.remove('oculto');
       resultadoDadoNum.textContent = resultado;
-      
-      resultadoVerificacion.textContent = predictionCorrecta 
-        ? '✓ Tu predicción fue CORRECTA' 
+      resultadoVerificacion.textContent = predictionCorrecta
+        ? '✓ Tu predicción fue CORRECTA'
         : '✗ Tu predicción fue INCORRECTA';
-      
       resultadoVerificacion.className = 'resultado-verificacion ' + (predictionCorrecta ? 'correcto' : 'incorrecto');
-      
       actualizarEstadisticas();
 
       const nuevaPos = Math.min(posicion + resultado, dadoMeta);
@@ -478,60 +489,43 @@
       estado.posicionDado = posicion;
       guardarEstado();
 
-      /* Mover Michi visualmente */
       if (michi) {
         michi.style.transform = `translateX(${Math.min(posicion * 8, 80)}px)`;
       }
 
-      /* Actualizar sendero */
       sendero.querySelectorAll('.paso-sendero').forEach(p => {
         p.classList.remove('activo');
-        if (parseInt(p.dataset.paso, 10) === posicion) {
-          p.classList.add('activo');
-        }
+        if (parseInt(p.dataset.paso, 10) === posicion) p.classList.add('activo');
       });
 
-      mensaje.textContent = predictionCorrecta
-        ? `¡Acertaste! Salió ${resultado}. +${pasosReales} pasos ${mensajeAleatorio(MENSAJES.suerte)}`
-        : `Salió ${resultado}. +${pasosReales} pasos ${mensajeAleatorio(MENSAJES.neutral)}`;
+      // Mostrar modal con gato antes de continuar
+      await mostrarModalResultado(predictionCorrecta, resultado, pasosReales);
 
       if (posicion >= dadoMeta) {
-        await sleep(800);
         mensaje.textContent = '¡Meta alcanzada! Michi encontró el cofre con la llave dorada.';
         completarMision('dado');
         btnLanzar.classList.add('oculto');
-        
-        // Mostrar cofre
         cofreFinal.classList.remove('oculto');
-        
-        // Animar apertura del cofre después de 1 segundo
         setTimeout(() => {
           cofreCerrado.classList.add('oculto');
           cofreAbiertoLlave.classList.remove('oculto');
-          
-          // Efecto de partículas al abrir cofre
           const cofreRect = cofreFinal.getBoundingClientRect();
           crearParticulas(cofreRect.left + cofreRect.width / 2, cofreRect.top + cofreRect.height / 2, 'var(--dorado-brillo)');
         }, 1500);
-        
-        setTimeout(() => {
-          btnContinuar.classList.remove('oculto');
-        }, 3000);
+        setTimeout(() => btnContinuar.classList.remove('oculto'), 3000);
       } else {
-        // Limpiar input para siguiente predicción
+        // Listo para siguiente predicción
         prediccionInput.value = '';
         prediccionInput.focus();
         btnLanzar.disabled = false;
+        mensaje.textContent = 'Ingresa nuevamente tu predicción (1-6) y lanza el dado';
       }
 
       lanzando = false;
     };
 
-    // También permitir lanzar con Enter
     prediccionInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter' && !lanzando) {
-        btnLanzar.click();
-      }
+      if (e.key === 'Enter' && !lanzando) btnLanzar.click();
     });
   }
 
@@ -893,34 +887,220 @@
   /* ═══════════════════════════════════════
      MISIÓN 3: BOLSA
      ═══════════════════════════════════════ */
+
+  const COMPOSICIONES_BOLSA = [
+    { id: 0, blueCount: 2, silverCount: 8, blueProbability: 20, silverProbability: 80 },
+    { id: 1, blueCount: 4, silverCount: 6, blueProbability: 40, silverProbability: 60 },
+    { id: 2, blueCount: 5, silverCount: 5, blueProbability: 50, silverProbability: 50 },
+    { id: 3, blueCount: 6, silverCount: 4, blueProbability: 60, silverProbability: 40 },
+    { id: 4, blueCount: 8, silverCount: 2, blueProbability: 80, silverProbability: 20 }
+  ];
+
+  const MUESTRAS_BOLSA_MAX = 5;
+  const PUNTOS_BOLSA_ACIERTO = 10;
+
+  function crearEstadoBolsaNuevo() {
+    const idx = Math.floor(Math.random() * COMPOSICIONES_BOLSA.length);
+    const comp = COMPOSICIONES_BOLSA[idx];
+    return {
+      selectedCompositionId: comp.id,
+      actualBlueCount: comp.blueCount,
+      actualSilverCount: comp.silverCount,
+      blueProbability: comp.blueProbability,
+      silverProbability: comp.silverProbability,
+      gamePhase: 'sampling',
+      sampleDraws: 0,
+      sampleBlueCount: 0,
+      sampleSilverCount: 0,
+      sampleHistory: [],
+      selectedPrediction: null,
+      predictionLocked: false,
+      rewardGranted: false,
+      missionCompleted: false,
+      isCorrect: null
+    };
+  }
+
+  function crearEstadoBolsaLegacyCompletado() {
+    const base = crearEstadoBolsaNuevo();
+    return {
+      ...base,
+      gamePhase: 'result',
+      sampleDraws: MUESTRAS_BOLSA_MAX,
+      predictionLocked: true,
+      rewardGranted: true,
+      missionCompleted: true,
+      isCorrect: null
+    };
+  }
+
+  function extraerFichaMuestra(sb) {
+    const total = sb.actualBlueCount + sb.actualSilverCount;
+    return Math.random() * total < sb.actualBlueCount ? 'azul' : 'plata';
+  }
+
+  function crearEstrellasBolsa() {
+    const capa = document.createElement('div');
+    capa.className = 'bolsa-estrellas-acierto';
+    document.body.appendChild(capa);
+    for (let i = 0; i < 14; i++) {
+      const estrella = document.createElement('span');
+      estrella.className = 'bolsa-estrella';
+      estrella.textContent = '★';
+      estrella.style.left = (10 + Math.random() * 80) + '%';
+      estrella.style.top = (15 + Math.random() * 55) + '%';
+      estrella.style.animationDelay = (Math.random() * 0.4) + 's';
+      estrella.style.color = Math.random() > 0.5 ? 'var(--dorado-brillo)' : 'var(--dorado-claro)';
+      capa.appendChild(estrella);
+    }
+    setTimeout(() => capa.remove(), 1400);
+  }
+
   function initMisionBolsa() {
     const bolsa = document.getElementById('bolsa-clic');
     const ficha = document.getElementById('ficha-saliente');
     const mensaje = document.getElementById('mensaje-bolsa');
     const contador = document.getElementById('contador-bolsa');
+    const narracion = document.getElementById('bolsa-narracion');
     const grafico = document.getElementById('grafico-bolsa');
+    const panelPrediccion = document.getElementById('bolsa-prediccion-panel');
+    const panelRevelacion = document.getElementById('bolsa-revelacion-panel');
+    const panelResultado = document.getElementById('bolsa-resultado-panel');
+    const opcionesPrediccion = document.getElementById('bolsa-opciones-prediccion');
+    const btnConfirmar = document.getElementById('btn-bolsa-confirmar');
     const btnContinuar = document.getElementById('btn-bolsa-continuar');
     const barraAzul = document.getElementById('barra-azul');
-    const barraRoja = document.getElementById('barra-roja');
+    const barraPlata = document.getElementById('barra-roja');
     const numAzul = document.getElementById('num-azul');
-    const numRoja = document.getElementById('num-roja');
+    const numPlata = document.getElementById('num-roja');
+    const statsConteo = document.getElementById('bolsa-stats-conteo');
+    const statsPorcentaje = document.getElementById('bolsa-stats-porcentaje');
+    const revelAzulCount = document.getElementById('bolsa-revel-azul-count');
+    const revelPlataCount = document.getElementById('bolsa-revel-plata-count');
+    const fichasAzul = document.getElementById('bolsa-fichas-azul');
+    const fichasPlata = document.getElementById('bolsa-fichas-plata');
+    const resultadoTexto = document.getElementById('bolsa-resultado-texto');
+    const explicacionEducativa = document.getElementById('bolsa-explicacion-educativa');
+    const animPuntos = document.getElementById('animacion-moneda-bolsa');
 
-    bolsaIntentos = estado.resultadosBolsa.azul + estado.resultadosBolsa.roja;
-    grafico.classList.add('oculto');
-    btnContinuar.classList.add('oculto');
-    ficha.innerHTML = '';
-    contador.textContent = `Intentos: ${bolsaIntentos}`;
+    if (!estado.estadoBolsa) {
+      estado.estadoBolsa = misionCompletada('bolsa')
+        ? crearEstadoBolsaLegacyCompletado()
+        : crearEstadoBolsaNuevo();
+      guardarEstado();
+    }
+
+    const sb = estado.estadoBolsa;
+    const compGuardada = COMPOSICIONES_BOLSA.find(c => c.id === sb.selectedCompositionId);
+    if (compGuardada) {
+      sb.actualBlueCount = compGuardada.blueCount;
+      sb.actualSilverCount = compGuardada.silverCount;
+      sb.blueProbability = compGuardada.blueProbability;
+      sb.silverProbability = compGuardada.silverProbability;
+    }
 
     let ocupado = false;
+    let prediccionSeleccionada = sb.selectedPrediction;
 
-    /* Probabilidad: 55% azul, 45% roja (bolsa con más fichas azules) */
-    const PROB_AZUL = 0.55;
+    function guardarBolsa() {
+      guardarEstado();
+    }
 
-    bolsa.onclick = async () => {
-      if (ocupado) return;
+    function actualizarContadorMuestras() {
+      contador.textContent = `Muestra ${sb.sampleDraws} de ${MUESTRAS_BOLSA_MAX}`;
+    }
+
+    function actualizarPanelMuestras() {
+      const total = sb.sampleDraws;
+      const pctAzul = total > 0 ? Math.round((sb.sampleBlueCount / total) * 100) : 0;
+      const pctPlata = total > 0 ? Math.round((sb.sampleSilverCount / total) * 100) : 0;
+
+      if (total > 0) {
+        grafico.classList.remove('oculto');
+      } else {
+        grafico.classList.add('oculto');
+      }
+
+      statsConteo.textContent = `Azules: ${sb.sampleBlueCount} · Plateadas: ${sb.sampleSilverCount}`;
+      statsPorcentaje.textContent =
+        `Azules observadas: ${pctAzul} % · Plateadas observadas: ${pctPlata} %`;
+      numAzul.textContent = sb.sampleBlueCount;
+      numPlata.textContent = sb.sampleSilverCount;
+      barraAzul.style.setProperty('--altura', Math.max(pctAzul, total > 0 ? 8 : 10) + '%');
+      barraPlata.style.setProperty('--altura', Math.max(pctPlata, total > 0 ? 8 : 10) + '%');
+    }
+
+    function setBolsaInteractiva(activa) {
+      bolsa.classList.toggle('bloqueada', !activa);
+      bolsa.disabled = !activa;
+    }
+
+    function renderOpcionesPrediccion() {
+      opcionesPrediccion.innerHTML = '';
+      const bloqueada = sb.predictionLocked;
+
+      COMPOSICIONES_BOLSA.forEach(comp => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'bolsa-opcion-btn';
+        if (prediccionSeleccionada === comp.id) btn.classList.add('seleccionada');
+        btn.disabled = bloqueada;
+        btn.dataset.id = String(comp.id);
+
+        const barras = document.createElement('div');
+        barras.className = 'bolsa-opcion-barras';
+        const barraAzulOpt = document.createElement('div');
+        barraAzulOpt.className = 'bolsa-opcion-barra-azul';
+        barraAzulOpt.style.width = comp.blueProbability + '%';
+        const barraPlataOpt = document.createElement('div');
+        barraPlataOpt.className = 'bolsa-opcion-barra-plata';
+        barraPlataOpt.style.width = comp.silverProbability + '%';
+        barras.appendChild(barraAzulOpt);
+        barras.appendChild(barraPlataOpt);
+
+        const pct = document.createElement('span');
+        pct.className = 'bolsa-opcion-pct';
+        pct.textContent = `${comp.blueProbability} % azules · ${comp.silverProbability} % plateadas`;
+
+        const cant = document.createElement('span');
+        cant.className = 'bolsa-opcion-cant';
+        cant.textContent = `${comp.blueCount} azules y ${comp.silverCount} plateadas`;
+
+        btn.appendChild(barras);
+        btn.appendChild(pct);
+        btn.appendChild(cant);
+
+        btn.onclick = () => {
+          if (sb.predictionLocked || sb.gamePhase !== 'prediction') return;
+          prediccionSeleccionada = comp.id;
+          sb.selectedPrediction = comp.id;
+          renderOpcionesPrediccion();
+          btnConfirmar.disabled = false;
+          guardarBolsa();
+        };
+
+        opcionesPrediccion.appendChild(btn);
+      });
+
+      btnConfirmar.disabled = bloqueada || prediccionSeleccionada === null;
+    }
+
+    function mostrarFasePrediccion() {
+      sb.gamePhase = 'prediction';
+      setBolsaInteractiva(false);
+      narracion.textContent = 'Hora de predecir la composición completa de la bolsa.';
+      mensaje.textContent =
+        'Según las fichas que observaste, ¿cuál crees que es la composición real de la bolsa?';
+      panelPrediccion.classList.remove('oculto');
+      renderOpcionesPrediccion();
+      guardarBolsa();
+    }
+
+    async function sacarMuestra() {
+      if (ocupado || sb.gamePhase !== 'sampling' || sb.sampleDraws >= MUESTRAS_BOLSA_MAX) return;
       ocupado = true;
+      setBolsaInteractiva(false);
 
-      // Efecto de partículas al tocar la bolsa
       const rect = bolsa.getBoundingClientRect();
       crearParticulas(rect.left + rect.width / 2, rect.top + rect.height / 2, 'var(--dorado-claro)');
 
@@ -928,56 +1108,277 @@
       await sleep(400);
       bolsa.classList.remove('sacudiendo');
 
-      const esAzul = Math.random() < PROB_AZUL;
-      const color = esAzul ? 'azul' : 'roja';
-      estado.resultadosBolsa[color]++;
-      bolsaIntentos++;
-      guardarEstado();
+      const color = extraerFichaMuestra(sb);
+      sb.sampleHistory.push(color);
+      sb.sampleDraws++;
+      if (color === 'azul') sb.sampleBlueCount++;
+      else sb.sampleSilverCount++;
 
-      const srcFicha = esAzul ? IMG.fichaAzul : IMG.fichaPlata;
-      const altFicha = esAzul ? 'Ficha azul' : 'Ficha plata';
+      const srcFicha = color === 'azul' ? IMG.fichaAzul : IMG.fichaPlata;
+      const altFicha = color === 'azul' ? 'Ficha azul' : 'Ficha plateada';
 
       ficha.innerHTML = '';
       ficha.appendChild(crearImg(srcFicha, altFicha));
-      ficha.classList.remove('aparece');
+      ficha.classList.remove('aparece', 'regresa');
       void ficha.offsetWidth;
       ficha.classList.add('aparece');
       destello(bolsa);
       destello(ficha);
 
-      contador.textContent = `Intentos: ${bolsaIntentos}`;
-      mensaje.textContent = esAzul
-        ? 'Ficha azul! ' + mensajeAleatorio(MENSAJES.neutral)
-        : 'Ficha plata! ' + mensajeAleatorio(MENSAJES.neutral);
+      actualizarContadorMuestras();
+      actualizarPanelMuestras();
+      mensaje.textContent = color === 'azul'
+        ? 'Observaste una ficha azul. La ficha vuelve a la bolsa.'
+        : 'Observaste una ficha plateada. La ficha vuelve a la bolsa.';
 
-      if (bolsaIntentos >= bolsaMinimoGrafico) {
-        mostrarGraficoBolsa();
-        if (!misionCompletada('bolsa')) {
-          completarMision('bolsa');
-          btnContinuar.classList.remove('oculto');
-        }
+      guardarBolsa();
+      await sleep(700);
+
+      ficha.classList.add('regresa');
+      await sleep(450);
+      ficha.innerHTML = '';
+      ficha.classList.remove('aparece', 'regresa');
+
+      if (sb.sampleDraws >= MUESTRAS_BOLSA_MAX) {
+        mensaje.textContent = 'Completaste las cinco muestras. Ahora haz tu predicción.';
+        mostrarFasePrediccion();
+      } else {
+        setBolsaInteractiva(true);
       }
 
       ocupado = false;
-    };
-
-    function mostrarGraficoBolsa() {
-      const { azul, roja } = estado.resultadosBolsa;
-      const total = azul + roja || 1;
-      const pctAzul = Math.round((azul / total) * 100);
-      const pctRoja = Math.round((roja / total) * 100);
-
-      grafico.classList.remove('oculto');
-      numAzul.textContent = azul;
-      numRoja.textContent = roja;
-      barraAzul.style.setProperty('--altura', Math.max(pctAzul, 8) + '%');
-      barraRoja.style.setProperty('--altura', Math.max(pctRoja, 8) + '%');
     }
 
-    if (bolsaIntentos >= bolsaMinimoGrafico) {
-      mostrarGraficoBolsa();
-      if (misionCompletada('bolsa')) btnContinuar.classList.remove('oculto');
+    async function revelarBolsa(animar) {
+      sb.gamePhase = 'revealing';
+      panelPrediccion.classList.add('oculto');
+      panelRevelacion.classList.remove('oculto');
+      setBolsaInteractiva(false);
+      narracion.textContent = 'La bolsa se vacía y revela su contenido real.';
+      mensaje.textContent = 'Observa las diez fichas que había dentro de la bolsa.';
+
+      fichasAzul.innerHTML = '';
+      fichasPlata.innerHTML = '';
+      revelAzulCount.textContent = '0';
+      revelPlataCount.textContent = '0';
+      guardarBolsa();
+
+      const fichas = [];
+      for (let i = 0; i < sb.actualBlueCount; i++) fichas.push('azul');
+      for (let i = 0; i < sb.actualSilverCount; i++) fichas.push('plata');
+      for (let i = fichas.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [fichas[i], fichas[j]] = [fichas[j], fichas[i]];
+      }
+
+      let azulReveladas = 0;
+      let plataReveladas = 0;
+
+      if (animar) {
+        bolsa.classList.add('vaciando');
+        for (const color of fichas) {
+          bolsa.classList.remove('vaciando');
+          void bolsa.offsetWidth;
+          bolsa.classList.add('vaciando');
+          await sleep(320);
+
+          const img = crearImg(
+            color === 'azul' ? IMG.fichaAzul : IMG.fichaPlata,
+            color === 'azul' ? 'Ficha azul' : 'Ficha plateada'
+          );
+          if (color === 'azul') {
+            azulReveladas++;
+            fichasAzul.appendChild(img);
+            revelAzulCount.textContent = String(azulReveladas);
+          } else {
+            plataReveladas++;
+            fichasPlata.appendChild(img);
+            revelPlataCount.textContent = String(plataReveladas);
+          }
+        }
+        bolsa.classList.remove('vaciando');
+        await sleep(400);
+      } else {
+        for (const color of fichas) {
+          const img = crearImg(
+            color === 'azul' ? IMG.fichaAzul : IMG.fichaPlata,
+            color === 'azul' ? 'Ficha azul' : 'Ficha plateada'
+          );
+          if (color === 'azul') {
+            azulReveladas++;
+            fichasAzul.appendChild(img);
+          } else {
+            plataReveladas++;
+            fichasPlata.appendChild(img);
+          }
+        }
+        revelAzulCount.textContent = String(azulReveladas);
+        revelPlataCount.textContent = String(plataReveladas);
+      }
+
+      await mostrarResultado(animar);
     }
+
+    function otorgarPuntosBolsa() {
+      if (sb.rewardGranted || !sb.isCorrect) return;
+      sb.rewardGranted = true;
+      estado.monedasDado = (estado.monedasDado || 0) + PUNTOS_BOLSA_ACIERTO;
+      guardarBolsa();
+
+      if (animPuntos) {
+        animPuntos.classList.remove('oculto');
+        setTimeout(() => animPuntos.classList.add('oculto'), 2500);
+      }
+
+      const rect = bolsa.getBoundingClientRect();
+      crearParticulas(rect.left + rect.width / 2, rect.top + rect.height / 2, 'var(--dorado-brillo)');
+      crearEstrellasBolsa();
+      destello(bolsa);
+    }
+
+    function finalizarMisionBolsa() {
+      if (!sb.missionCompleted) {
+        sb.missionCompleted = true;
+        completarMision('bolsa');
+        guardarBolsa();
+      }
+      btnContinuar.classList.remove('oculto');
+    }
+
+    async function mostrarResultado(animarExtras) {
+      sb.gamePhase = 'result';
+      const compElegida = COMPOSICIONES_BOLSA.find(c => c.id === sb.selectedPrediction);
+
+      const totalMuestras = sb.sampleDraws || MUESTRAS_BOLSA_MAX;
+      const pctMuestraAzul = totalMuestras > 0
+        ? Math.round((sb.sampleBlueCount / totalMuestras) * 100)
+        : 0;
+      const pctMuestraPlata = totalMuestras > 0
+        ? Math.round((sb.sampleSilverCount / totalMuestras) * 100)
+        : 0;
+
+      panelResultado.classList.remove('oculto');
+
+      if (sb.isCorrect) {
+        resultadoTexto.innerHTML = `
+          <h4>¡Predicción correcta!</h4>
+          <p>Descubriste que la bolsa tenía <strong>${sb.actualBlueCount} fichas azules</strong> y <strong>${sb.actualSilverCount} fichas plateadas</strong>.</p>
+          <p>Azules: ${sb.actualBlueCount} de 10 = ${sb.blueProbability} %</p>
+          <p>Plateadas: ${sb.actualSilverCount} de 10 = ${sb.silverProbability} %</p>
+          <p><strong>Ganaste ${PUNTOS_BOLSA_ACIERTO} puntos.</strong></p>
+        `;
+        narracion.textContent = '¡Excelente predicción!';
+        mensaje.textContent = 'Tu predicción coincidió con la composición real de la bolsa.';
+        if (!sb.rewardGranted) {
+          if (animarExtras) otorgarPuntosBolsa();
+          else {
+            sb.rewardGranted = true;
+            estado.monedasDado = (estado.monedasDado || 0) + PUNTOS_BOLSA_ACIERTO;
+            guardarBolsa();
+          }
+        }
+      } else if (compElegida) {
+        resultadoTexto.innerHTML = `
+          <h4>Esta vez tu predicción no fue correcta.</h4>
+          <p>Elegiste: <strong>${compElegida.blueProbability} % azules</strong> y <strong>${compElegida.silverProbability} % plateadas</strong>.</p>
+          <p>La composición real era: <strong>${sb.blueProbability} % azules</strong> y <strong>${sb.silverProbability} % plateadas</strong>.</p>
+          <p>En una muestra pequeña, los resultados observados pueden ser diferentes de la composición real.</p>
+        `;
+        narracion.textContent = 'Sigue observando y aprendiendo.';
+        mensaje.textContent = 'La muestra no siempre refleja exactamente el contenido total.';
+      } else {
+        resultadoTexto.innerHTML = `
+          <h4>Misión completada</h4>
+          <p>La bolsa tenía <strong>${sb.actualBlueCount} fichas azules</strong> y <strong>${sb.actualSilverCount} fichas plateadas</strong>.</p>
+        `;
+      }
+
+      explicacionEducativa.innerHTML = `
+        <p>La <strong>frecuencia experimental</strong> se obtiene con las fichas que observaste durante las muestras. La <strong>probabilidad real</strong> depende de todas las fichas que había dentro de la bolsa.</p>
+        <p><strong>Resultado de las cinco muestras:</strong><br>
+        Azules: ${sb.sampleBlueCount} de ${totalMuestras} = ${pctMuestraAzul} %<br>
+        Plateadas: ${sb.sampleSilverCount} de ${totalMuestras} = ${pctMuestraPlata} %</p>
+        <p><strong>Contenido real de la bolsa:</strong><br>
+        Azules: ${sb.actualBlueCount} de 10 = ${sb.blueProbability} %<br>
+        Plateadas: ${sb.actualSilverCount} de 10 = ${sb.silverProbability} %</p>
+        <p>Una muestra pequeña nos ayuda a realizar una predicción, pero no siempre coincide exactamente con el resultado real.</p>
+      `;
+
+      guardarBolsa();
+      finalizarMisionBolsa();
+    }
+
+    async function confirmarPrediccion() {
+      if (sb.predictionLocked || prediccionSeleccionada === null) return;
+
+      sb.predictionLocked = true;
+      sb.selectedPrediction = prediccionSeleccionada;
+      sb.isCorrect = prediccionSeleccionada === sb.selectedCompositionId;
+      btnConfirmar.disabled = true;
+      renderOpcionesPrediccion();
+      guardarBolsa();
+
+      mensaje.textContent = 'Predicción confirmada. Revelando el contenido de la bolsa...';
+      await revelarBolsa(true);
+    }
+
+    function restaurarFase() {
+      btnContinuar.classList.add('oculto');
+      animPuntos.classList.add('oculto');
+      panelPrediccion.classList.add('oculto');
+      panelRevelacion.classList.add('oculto');
+      panelResultado.classList.add('oculto');
+      ficha.innerHTML = '';
+
+      actualizarContadorMuestras();
+      actualizarPanelMuestras();
+
+      if (sb.gamePhase === 'sampling') {
+        narracion.textContent = '¡Toca la bolsa y descubre qué hay dentro!';
+        mensaje.textContent = 'Toca la bolsa para observar cinco fichas de muestra.';
+        const puedeSacar = sb.sampleDraws < MUESTRAS_BOLSA_MAX;
+        setBolsaInteractiva(puedeSacar);
+        bolsa.onclick = sacarMuestra;
+        if (!puedeSacar) mostrarFasePrediccion();
+        return;
+      }
+
+      setBolsaInteractiva(false);
+      bolsa.onclick = null;
+
+      if (sb.gamePhase === 'prediction') {
+        narracion.textContent = 'Hora de predecir la composición completa de la bolsa.';
+        mensaje.textContent =
+          'Según las fichas que observaste, ¿cuál crees que es la composición real de la bolsa?';
+        panelPrediccion.classList.remove('oculto');
+        renderOpcionesPrediccion();
+        return;
+      }
+
+      if (sb.gamePhase === 'revealing') {
+        panelRevelacion.classList.remove('oculto');
+        revelarBolsa(false);
+        return;
+      }
+
+      if (sb.gamePhase === 'result') {
+        panelRevelacion.classList.remove('oculto');
+        fichasAzul.innerHTML = '';
+        fichasPlata.innerHTML = '';
+        for (let i = 0; i < sb.actualBlueCount; i++) {
+          fichasAzul.appendChild(crearImg(IMG.fichaAzul, 'Ficha azul'));
+        }
+        for (let i = 0; i < sb.actualSilverCount; i++) {
+          fichasPlata.appendChild(crearImg(IMG.fichaPlata, 'Ficha plateada'));
+        }
+        revelAzulCount.textContent = String(sb.actualBlueCount);
+        revelPlataCount.textContent = String(sb.actualSilverCount);
+        mostrarResultado(false);
+      }
+    }
+
+    btnConfirmar.onclick = confirmarPrediccion;
+    restaurarFase();
   }
 
   /* ═══════════════════════════════════════
@@ -1212,6 +1613,7 @@
   function reiniciarJuego() {
     estado = { ...estadoDefault };
     estado.estadoCajas = null;
+    estado.estadoBolsa = null;
     guardarEstado();
     estado.posicionDado = 0;
     actualizarMapa();
