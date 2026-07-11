@@ -335,7 +335,6 @@
     const prediccionResultado = document.getElementById('prediccion-resultado');
     const resultadoDadoNum = document.getElementById('resultado-dado-num');
     const resultadoVerificacion = document.getElementById('resultado-verificacion');
-    const porcentajeAciertos = document.getElementById('porcentaje-aciertos');
     const animacionMoneda = document.getElementById('animacion-moneda');
     const contadorMonedas = document.getElementById('numero-monedas');
     const cofreFinal = document.getElementById('cofre-final');
@@ -347,6 +346,7 @@
     const modalGato      = document.getElementById('modal-dado-gato');
     const modalTitulo    = document.getElementById('modal-dado-titulo');
     const modalMensaje   = document.getElementById('modal-dado-mensaje');
+    const modalDadoCara  = document.getElementById('modal-dado-cara');
     const btnCerrarModal = document.getElementById('btn-cerrar-modal-dado');
 
     let posicion = estado.posicionDado || 0;
@@ -378,7 +378,7 @@
     animacionMoneda.classList.add('oculto');
 
     if (posicion >= dadoMeta) {
-      mensaje.textContent = '¡Meta alcanzada!';
+      mensaje.textContent = 'Has alcanzado la llave para abrir el siguiente nivel.';
       btnLanzar.classList.add('oculto');
       cofreFinal.classList.remove('oculto');
       setTimeout(() => {
@@ -389,33 +389,25 @@
       return;
     }
 
-    mensaje.textContent = 'Ingresa tu predicción (1-6) y lanza el dado';
-
-    actualizarEstadisticas();
-
-    function actualizarEstadisticas() {
-      if (totalLanzamientos > 0) {
-        const porcentaje = Math.round((aciertos / totalLanzamientos) * 100);
-        porcentajeAciertos.textContent = porcentaje + '%';
-      } else {
-        porcentajeAciertos.textContent = '0%';
-      }
-    }
+    mensaje.textContent = 'Ingresa tu predicción (1-6) y lanza el dado. Solo avanzas si aciertas.';
 
     /* Mostrar modal con gato según resultado */
     function mostrarModalResultado(correcto, resultadoDado, pasosReales) {
       return new Promise(resolve => {
+        modalDadoCara.src = `img/dados/dado${resultadoDado}.png`;
+        modalDadoCara.alt = `Dado: ${resultadoDado}`;
+
         if (correcto) {
           modalGato.src = 'img/personajes/michi-celebrando.png';
           modalGato.alt = 'Michi celebrando';
           modalTitulo.textContent = '¡Felicidades!';
-          modalMensaje.textContent = `Predijiste correctamente. Salió ${resultadoDado}. Avanzas ${pasosReales} paso${pasosReales !== 1 ? 's' : ''}.`;
+          modalMensaje.textContent = `Predijiste correctamente. Avanzas ${pasosReales} paso${pasosReales !== 1 ? 's' : ''}.`;
           modalResultado.className = 'modal modal-resultado-dado modal-acierto';
         } else {
           modalGato.src = 'img/personajes/gato_desagrado.png';
           modalGato.alt = 'Michi triste';
           modalTitulo.textContent = 'Esta vez no fue';
-          modalMensaje.textContent = `Tu predicción fue incorrecta. Salió ${resultadoDado}. Avanzas ${pasosReales} paso${pasosReales !== 1 ? 's' : ''}.`;
+          modalMensaje.textContent = 'Tu predicción fue incorrecta. No avanzas este turno.';
           modalResultado.className = 'modal modal-resultado-dado modal-fallo';
         }
 
@@ -481,28 +473,31 @@
         ? '✓ Tu predicción fue CORRECTA'
         : '✗ Tu predicción fue INCORRECTA';
       resultadoVerificacion.className = 'resultado-verificacion ' + (predictionCorrecta ? 'correcto' : 'incorrecto');
-      actualizarEstadisticas();
 
-      const nuevaPos = Math.min(posicion + resultado, dadoMeta);
-      const pasosReales = nuevaPos - posicion;
-      posicion = nuevaPos;
-      estado.posicionDado = posicion;
-      guardarEstado();
+      let pasosReales = 0;
+      if (predictionCorrecta) {
+        const nuevaPos = Math.min(posicion + resultado, dadoMeta);
+        pasosReales = nuevaPos - posicion;
+        posicion = nuevaPos;
+        estado.posicionDado = posicion;
 
-      if (michi) {
-        michi.style.transform = `translateX(${Math.min(posicion * 8, 80)}px)`;
+        if (michi) {
+          michi.style.transform = `translateX(${Math.min(posicion * 8, 80)}px)`;
+        }
+
+        sendero.querySelectorAll('.paso-sendero').forEach(p => {
+          p.classList.remove('activo');
+          if (parseInt(p.dataset.paso, 10) === posicion) p.classList.add('activo');
+        });
       }
 
-      sendero.querySelectorAll('.paso-sendero').forEach(p => {
-        p.classList.remove('activo');
-        if (parseInt(p.dataset.paso, 10) === posicion) p.classList.add('activo');
-      });
+      guardarEstado();
 
       // Mostrar modal con gato antes de continuar
       await mostrarModalResultado(predictionCorrecta, resultado, pasosReales);
 
       if (posicion >= dadoMeta) {
-        mensaje.textContent = '¡Meta alcanzada! Michi encontró el cofre con la llave dorada.';
+        mensaje.textContent = 'Has alcanzado la llave para abrir el siguiente nivel.';
         completarMision('dado');
         btnLanzar.classList.add('oculto');
         cofreFinal.classList.remove('oculto');
@@ -514,11 +509,12 @@
         }, 1500);
         setTimeout(() => btnContinuar.classList.remove('oculto'), 3000);
       } else {
-        // Listo para siguiente predicción
         prediccionInput.value = '';
         prediccionInput.focus();
         btnLanzar.disabled = false;
-        mensaje.textContent = 'Ingresa nuevamente tu predicción (1-6) y lanza el dado';
+        mensaje.textContent = predictionCorrecta
+          ? '¡Bien! Ingresa tu siguiente predicción (1-6) y lanza el dado.'
+          : 'Debes acertar para avanzar. Ingresa tu predicción (1-6) y lanza el dado.';
       }
 
       lanzando = false;
@@ -588,6 +584,17 @@
     const cntMonedas      = document.getElementById('numero-monedas-cajas');
     const btnInfoProb     = document.getElementById('btn-info-prob');
     const probTexto       = document.getElementById('cajas-prob-texto');
+
+    // Modal de resultado de caja
+    const modalCaja         = document.getElementById('modal-resultado-caja');
+    const modalCajaGato     = document.getElementById('modal-caja-gato');
+    const modalCajaTitulo   = document.getElementById('modal-caja-titulo');
+    const modalCajaObjEleg  = document.getElementById('modal-caja-obj-elegido');
+    const modalCajaNomEleg  = document.getElementById('modal-caja-nombre-elegido');
+    const modalCajaObjReal  = document.getElementById('modal-caja-obj-real');
+    const modalCajaNomReal  = document.getElementById('modal-caja-nombre-real');
+    const modalCajaMensaje  = document.getElementById('modal-caja-mensaje');
+    const btnCerrarModalCaja = document.getElementById('btn-cerrar-modal-caja');
 
     const NOMBRES = { azul: 'Caja Azul', bronce: 'Caja Bronce', hierro: 'Caja Hierro' };
     const IMGS_CAJA = { azul: IMG.cajas.azul, bronce: IMG.cajas.bronce, hierro: IMG.cajas.hierro };
@@ -797,25 +804,8 @@
       actualizarVisualesCajas();
       actualizarSlots(cajaSt);
 
-      /* Revelar resultado */
-      resultadoReveal.classList.remove('oculto');
-      resultadoImg.innerHTML = '';
-      resultadoImg.appendChild(crearImg(
-        hayMoneda ? IMG.moneda : IMG.piedra,
-        hayMoneda ? 'Moneda dorada' : 'Piedra gris',
-        'objeto-resultado'
-      ));
-      destello(resultadoReveal);
-
-      if (acerto) {
-        resultadoTexto.textContent = '¡Felicidades! Predijiste correctamente el resultado.';
-        resultadoTexto.className = 'cajas-resultado-texto correcto';
-      } else {
-        resultadoTexto.textContent = 'Esta vez no acertaste. Tendrás que volver a intentarlo.';
-        resultadoTexto.className = 'cajas-resultado-texto incorrecto';
-      }
-
-      await sleep(1400);
+      /* ── Modal de resultado ─────────────────────────────────── */
+      await mostrarModalResultadoCaja(acerto, prediccionSeleccionada, resultado, !esRepeticion);
 
       if (cajaEl) cajaEl.classList.remove('abierta');
 
@@ -854,6 +844,46 @@
       opcionPiedra.disabled = false;
       renderPanelActivo();
     };
+
+    /* ── Modal resultado de caja ────────────────────────────── */
+    function mostrarModalResultadoCaja(acerto, prediccion, resultadoReal) {
+      return new Promise(resolve => {
+        const srcElegido = prediccion === 'moneda' ? IMG.moneda : IMG.piedra;
+        const nomElegido = prediccion === 'moneda' ? 'Moneda' : 'Piedra';
+        const srcReal    = resultadoReal === 'moneda' ? IMG.moneda : IMG.piedra;
+        const nomReal    = resultadoReal === 'moneda' ? 'Moneda' : 'Piedra';
+
+        modalCajaObjEleg.src = srcElegido;
+        modalCajaObjEleg.alt = nomElegido;
+        modalCajaNomEleg.textContent = nomElegido;
+        modalCajaObjReal.src = srcReal;
+        modalCajaObjReal.alt = nomReal;
+        modalCajaNomReal.textContent = nomReal;
+
+        if (acerto) {
+          modalCajaGato.src = 'img/personajes/michi-celebrando.png';
+          modalCajaGato.alt = 'Michi celebrando';
+          modalCajaTitulo.textContent = '¡Acertaste!';
+          modalCajaMensaje.textContent = 'Predijiste correctamente el objeto que salió de la caja.';
+          modalCaja.className = 'modal modal-resultado-caja modal-acierto';
+        } else {
+          modalCajaGato.src = 'img/personajes/gato_desagrado.png';
+          modalCajaGato.alt = 'Michi triste';
+          modalCajaTitulo.textContent = 'No acertaste';
+          modalCajaMensaje.textContent = 'El objeto que salió no fue el que predijiste. Tendrás que intentarlo de nuevo.';
+          modalCaja.className = 'modal modal-resultado-caja modal-fallo';
+        }
+
+        modalCaja.showModal();
+
+        const cerrar = () => {
+          modalCaja.close();
+          btnCerrarModalCaja.removeEventListener('click', cerrar);
+          resolve();
+        };
+        btnCerrarModalCaja.addEventListener('click', cerrar);
+      });
+    }
 
     /* ── Llave final ────────────────────────────────────────── */
     function mostrarLlaveFinal() {
@@ -937,6 +967,25 @@
   function extraerFichaMuestra(sb) {
     const total = sb.actualBlueCount + sb.actualSilverCount;
     return Math.random() * total < sb.actualBlueCount ? 'azul' : 'plata';
+  }
+
+  function crearFilaProporcionBolsa(bluePct, silverPct) {
+    const fila = document.createElement('div');
+    fila.className = 'bolsa-proporcion-visual';
+
+    [[bluePct, IMG.fichaAzul, 'Ficha azul'], [silverPct, IMG.fichaPlata, 'Ficha plateada']]
+      .forEach(([pct, src, alt]) => {
+        const lado = document.createElement('div');
+        lado.className = 'bolsa-proporcion-lado';
+        lado.appendChild(crearImg(src, alt, 'bolsa-proporcion-ficha'));
+        const pctEl = document.createElement('span');
+        pctEl.className = 'bolsa-proporcion-pct';
+        pctEl.textContent = pct + '%';
+        lado.appendChild(pctEl);
+        fila.appendChild(lado);
+      });
+
+    return fila;
   }
 
   function crearEstrellasBolsa() {
@@ -1046,29 +1095,7 @@
         if (prediccionSeleccionada === comp.id) btn.classList.add('seleccionada');
         btn.disabled = bloqueada;
         btn.dataset.id = String(comp.id);
-
-        const barras = document.createElement('div');
-        barras.className = 'bolsa-opcion-barras';
-        const barraAzulOpt = document.createElement('div');
-        barraAzulOpt.className = 'bolsa-opcion-barra-azul';
-        barraAzulOpt.style.width = comp.blueProbability + '%';
-        const barraPlataOpt = document.createElement('div');
-        barraPlataOpt.className = 'bolsa-opcion-barra-plata';
-        barraPlataOpt.style.width = comp.silverProbability + '%';
-        barras.appendChild(barraAzulOpt);
-        barras.appendChild(barraPlataOpt);
-
-        const pct = document.createElement('span');
-        pct.className = 'bolsa-opcion-pct';
-        pct.textContent = `${comp.blueProbability} % azules · ${comp.silverProbability} % plateadas`;
-
-        const cant = document.createElement('span');
-        cant.className = 'bolsa-opcion-cant';
-        cant.textContent = `${comp.blueCount} azules y ${comp.silverCount} plateadas`;
-
-        btn.appendChild(barras);
-        btn.appendChild(pct);
-        btn.appendChild(cant);
+        btn.appendChild(crearFilaProporcionBolsa(comp.blueProbability, comp.silverProbability));
 
         btn.onclick = () => {
           if (sb.predictionLocked || sb.gamePhase !== 'prediction') return;
@@ -1249,26 +1276,37 @@
       sb.gamePhase = 'result';
       const compElegida = COMPOSICIONES_BOLSA.find(c => c.id === sb.selectedPrediction);
 
-      const totalMuestras = sb.sampleDraws || MUESTRAS_BOLSA_MAX;
-      const pctMuestraAzul = totalMuestras > 0
-        ? Math.round((sb.sampleBlueCount / totalMuestras) * 100)
-        : 0;
-      const pctMuestraPlata = totalMuestras > 0
-        ? Math.round((sb.sampleSilverCount / totalMuestras) * 100)
-        : 0;
-
       panelResultado.classList.remove('oculto');
+      resultadoTexto.innerHTML = '';
+      explicacionEducativa.innerHTML = '';
+      explicacionEducativa.classList.add('oculto');
 
       if (sb.isCorrect) {
-        resultadoTexto.innerHTML = `
-          <h4>¡Predicción correcta!</h4>
-          <p>Descubriste que la bolsa tenía <strong>${sb.actualBlueCount} fichas azules</strong> y <strong>${sb.actualSilverCount} fichas plateadas</strong>.</p>
-          <p>Azules: ${sb.actualBlueCount} de 10 = ${sb.blueProbability} %</p>
-          <p>Plateadas: ${sb.actualSilverCount} de 10 = ${sb.silverProbability} %</p>
-          <p><strong>Ganaste ${PUNTOS_BOLSA_ACIERTO} puntos.</strong></p>
-        `;
+        const titulo = document.createElement('h4');
+        titulo.textContent = '¡Predicción correcta!';
+        resultadoTexto.appendChild(titulo);
+
+        const subtitulo = document.createElement('p');
+        subtitulo.className = 'bolsa-resultado-subtitulo';
+        subtitulo.textContent = 'La bolsa tenía:';
+        resultadoTexto.appendChild(subtitulo);
+
+        resultadoTexto.appendChild(
+          crearFilaProporcionBolsa(sb.blueProbability, sb.silverProbability)
+        );
+
+        const puntos = document.createElement('p');
+        puntos.className = 'bolsa-resultado-puntos';
+        puntos.textContent = `⭐ Ganaste ${PUNTOS_BOLSA_ACIERTO} puntos`;
+        resultadoTexto.appendChild(puntos);
+
+        const frase = document.createElement('p');
+        frase.className = 'bolsa-resultado-frase';
+        frase.textContent = 'Tu predicción coincidió con la composición real de la bolsa.';
+        resultadoTexto.appendChild(frase);
+
         narracion.textContent = '¡Excelente predicción!';
-        mensaje.textContent = 'Tu predicción coincidió con la composición real de la bolsa.';
+        mensaje.textContent = '';
         if (!sb.rewardGranted) {
           if (animarExtras) otorgarPuntosBolsa();
           else {
@@ -1278,31 +1316,40 @@
           }
         }
       } else if (compElegida) {
-        resultadoTexto.innerHTML = `
-          <h4>Esta vez tu predicción no fue correcta.</h4>
-          <p>Elegiste: <strong>${compElegida.blueProbability} % azules</strong> y <strong>${compElegida.silverProbability} % plateadas</strong>.</p>
-          <p>La composición real era: <strong>${sb.blueProbability} % azules</strong> y <strong>${sb.silverProbability} % plateadas</strong>.</p>
-          <p>En una muestra pequeña, los resultados observados pueden ser diferentes de la composición real.</p>
-        `;
-        narracion.textContent = 'Sigue observando y aprendiendo.';
-        mensaje.textContent = 'La muestra no siempre refleja exactamente el contenido total.';
-      } else {
-        resultadoTexto.innerHTML = `
-          <h4>Misión completada</h4>
-          <p>La bolsa tenía <strong>${sb.actualBlueCount} fichas azules</strong> y <strong>${sb.actualSilverCount} fichas plateadas</strong>.</p>
-        `;
-      }
+        const titulo = document.createElement('h4');
+        titulo.textContent = 'Esta vez tu predicción no fue correcta.';
+        resultadoTexto.appendChild(titulo);
 
-      explicacionEducativa.innerHTML = `
-        <p>La <strong>frecuencia experimental</strong> se obtiene con las fichas que observaste durante las muestras. La <strong>probabilidad real</strong> depende de todas las fichas que había dentro de la bolsa.</p>
-        <p><strong>Resultado de las cinco muestras:</strong><br>
-        Azules: ${sb.sampleBlueCount} de ${totalMuestras} = ${pctMuestraAzul} %<br>
-        Plateadas: ${sb.sampleSilverCount} de ${totalMuestras} = ${pctMuestraPlata} %</p>
-        <p><strong>Contenido real de la bolsa:</strong><br>
-        Azules: ${sb.actualBlueCount} de 10 = ${sb.blueProbability} %<br>
-        Plateadas: ${sb.actualSilverCount} de 10 = ${sb.silverProbability} %</p>
-        <p>Una muestra pequeña nos ayuda a realizar una predicción, pero no siempre coincide exactamente con el resultado real.</p>
-      `;
+        const subtitulo = document.createElement('p');
+        subtitulo.className = 'bolsa-resultado-subtitulo';
+        subtitulo.textContent = 'La bolsa tenía:';
+        resultadoTexto.appendChild(subtitulo);
+
+        resultadoTexto.appendChild(
+          crearFilaProporcionBolsa(sb.blueProbability, sb.silverProbability)
+        );
+
+        const frase = document.createElement('p');
+        frase.className = 'bolsa-resultado-frase';
+        frase.textContent = 'Una muestra pequeña no siempre muestra la proporción real.';
+        resultadoTexto.appendChild(frase);
+
+        narracion.textContent = 'Sigue observando y aprendiendo.';
+        mensaje.textContent = '';
+      } else {
+        const titulo = document.createElement('h4');
+        titulo.textContent = 'Misión completada';
+        resultadoTexto.appendChild(titulo);
+
+        const subtitulo = document.createElement('p');
+        subtitulo.className = 'bolsa-resultado-subtitulo';
+        subtitulo.textContent = 'La bolsa tenía:';
+        resultadoTexto.appendChild(subtitulo);
+
+        resultadoTexto.appendChild(
+          crearFilaProporcionBolsa(sb.blueProbability, sb.silverProbability)
+        );
+      }
 
       guardarBolsa();
       finalizarMisionBolsa();

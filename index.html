@@ -175,10 +175,41 @@
   <!-- Modal resultado del dado -->
   <dialog id="modal-resultado-dado" class="modal modal-resultado-dado">
     <div class="modal-contenido modal-resultado-dado-contenido">
-      <img id="modal-dado-gato" src="" alt="" class="modal-dado-gato">
-      <h2 id="modal-dado-titulo"></h2>
-      <p id="modal-dado-mensaje"></p>
+      <div class="modal-dado-fila">
+        <img id="modal-dado-gato" src="" alt="" class="modal-dado-gato">
+        <div class="modal-dado-info">
+          <h2 id="modal-dado-titulo"></h2>
+          <div class="modal-dado-resultado-visual">
+            <span class="modal-dado-etiqueta">Sacó</span>
+            <img id="modal-dado-cara" src="" alt="" class="modal-dado-cara-img">
+          </div>
+          <p id="modal-dado-mensaje"></p>
+        </div>
+      </div>
       <button class="btn btn-primario" id="btn-cerrar-modal-dado">¡Entendido!</button>
+    </div>
+  </dialog>
+
+  <!-- Modal resultado de las cajas -->
+  <dialog id="modal-resultado-caja" class="modal modal-resultado-caja">
+    <div class="modal-contenido modal-resultado-caja-contenido">
+      <img id="modal-caja-gato" src="" alt="" class="modal-dado-gato">
+      <h2 id="modal-caja-titulo"></h2>
+      <div class="modal-caja-objetos" id="modal-caja-objetos">
+        <div class="modal-caja-objeto-col">
+          <p class="modal-caja-etiqueta">Elegiste</p>
+          <img id="modal-caja-obj-elegido" src="" alt="" class="modal-caja-obj-img">
+          <span id="modal-caja-nombre-elegido"></span>
+        </div>
+        <div class="modal-caja-flecha">→</div>
+        <div class="modal-caja-objeto-col">
+          <p class="modal-caja-etiqueta">Salió</p>
+          <img id="modal-caja-obj-real" src="" alt="" class="modal-caja-obj-img">
+          <span id="modal-caja-nombre-real"></span>
+        </div>
+      </div>
+      <p id="modal-caja-mensaje"></p>
+      <button class="btn btn-primario" id="btn-cerrar-modal-caja">¡Entendido!</button>
     </div>
   </dialog>
 
@@ -208,7 +239,6 @@
         <div class="prediccion-resultado oculto" id="prediccion-resultado">
           <p class="resultado-texto"><strong>Resultado del dado:</strong> <span id="resultado-dado-num">-</span></p>
           <p class="resultado-verificacion" id="resultado-verificacion">-</p>
-          <p class="resultado-porcentaje" id="resultado-porcentaje">Precisión: <span id="porcentaje-aciertos">0%</span></p>
         </div>
       </div>
 
@@ -242,7 +272,7 @@
           <img src="img/tesoro/cofre-abierto.png" alt="Cofre abierto">
           <img src="img/objetos/llave-antigua.png" alt="Llave" class="llave-flotante">
         </div>
-        <p class="texto-llave" id="texto-llave">¡Has encontrado la llave dorada!</p>
+        <p class="texto-llave" id="texto-llave">Has alcanzado la llave para abrir el siguiente nivel.</p>
       </div>
 
       <button class="btn btn-primario btn-grande" id="btn-lanzar-dado">Lanzar dado</button>
@@ -409,7 +439,7 @@
 
       <div class="grafico-contenedor oculto" id="bolsa-prediccion-panel">
         <h3 id="bolsa-prediccion-titulo">Según las fichas que observaste, ¿cuál crees que es la composición real de la bolsa?</h3>
-        <p class="bolsa-aviso-prediccion">Solo tienes una oportunidad. Revisa tu respuesta antes de continuar.</p>
+        <p class="bolsa-aviso-prediccion" id="bolsa-aviso-prediccion">Tienes 3 oportunidades para ganar 10 puntos. Debes acertar para avanzar.</p>
         <div class="bolsa-opciones-prediccion" id="bolsa-opciones-prediccion"></div>
         <button class="btn btn-primario" id="btn-bolsa-confirmar" type="button" disabled>Confirmar predicción</button>
       </div>
@@ -432,6 +462,8 @@
         <div class="bolsa-resultado-texto" id="bolsa-resultado-texto"></div>
         <div class="bolsa-explicacion-educativa" id="bolsa-explicacion-educativa"></div>
       </div>
+
+      <button class="btn btn-primario oculto" id="btn-bolsa-reintentar">Intentar de nuevo</button>
 
       <div class="animacion-moneda oculto" id="animacion-moneda-bolsa">
         <img src="img/objetos/moneda-dorada.png" alt="Puntos ganados" class="moneda-ganada">
