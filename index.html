@@ -155,9 +155,16 @@
           <!-- Camino visual (líneas conectoras siguiendo el sendero real del mapa) -->
           <svg class="camino-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
             <!-- Inicio -> Dado -->
-            <path class="linea-camino" d="M 18 88 Q 32 88, 44 86 Q 50 85, 52 84" stroke-dasharray="5,5" />
+            <path class="linea-camino" d="M 18 88 Q 32 87, 42 86 Q 47 85, 52 84" stroke-dasharray="5,5" />
             <!-- Dado -> Cajas -->
             <path class="linea-camino" d="M 52 84 Q 58 78, 64 72 Q 70 68, 72 65" stroke-dasharray="5,5" />
+            <!-- Cajas -> Bolsa -->
+            <path class="linea-camino" d="M 72 65 Q 60 60, 50 55 Q 42 52, 38 48" stroke-dasharray="5,5" />
+            <!-- Bolsa -> Ruleta -->
+            <path class="linea-camino" d="M 38 48 Q 45 42, 55 38 Q 67 34, 75 32" stroke-dasharray="5,5" />
+            <!-- Ruleta -> Tesoro -->
+            <path class="linea-camino" d="M 75 32 Q 68 25, 60 20 Q 55 17, 50 15" stroke-dasharray="5,5" />
+          </svg>
             <!-- Cajas -> Bolsa (bajando y hacia la izquierda) -->
             <path class="linea-camino" d="M 72 65 Q 60 60, 50 55 Q 42 52, 38 48" stroke-dasharray="5,5" />
             <!-- Bolsa -> Ruleta (subiendo hacia la derecha) -->
@@ -405,24 +412,87 @@
       <header class="cabecera-mision">
         <button class="btn btn-mini" id="btn-ruleta-mapa">← Mapa</button>
         <h2>Misión 4: Ruleta de la suerte</h2>
+        <div class="contador-monedas" id="contador-monedas-ruleta">
+          <img src="img/tesoro/cofre.png" alt="Cofre" class="icono-cofre-contador">
+          <span class="numero-monedas" id="numero-monedas-ruleta">0</span>
+        </div>
       </header>
 
-      <p class="narracion">¡Gira y descubre tu premio!</p>
+      <p class="narracion" id="ruleta-narracion">¡El desafío final! Predice, gira y aprende sobre probabilidades.</p>
+      <p class="ruleta-contador-intentos" id="ruleta-contador-intentos">Intentos: 0/5</p>
 
+      <!-- Michi guía -->
+      <div class="ruleta-michi-panel" id="ruleta-michi-panel">
+        <img src="img/personajes/michi-caminando.png" alt="Michi" class="ruleta-michi-img">
+        <p class="ruleta-michi-mensaje" id="ruleta-michi-mensaje">Antes de girar la ruleta... ¿qué premio crees que aparecerá?</p>
+      </div>
+
+      <!-- Probabilidades visuales -->
+      <div class="ruleta-prob-panel" id="ruleta-prob-panel">
+        <h3 class="ruleta-prob-titulo">Probabilidades de cada premio</h3>
+        <p class="ruleta-prob-ayuda">Cada objeto tiene más o menos posibilidades según cuántos espacios ocupa en la ruleta.</p>
+        <div class="ruleta-prob-barras" id="ruleta-prob-barras"></div>
+        <div class="ruleta-espacios-visual" id="ruleta-espacios-visual" aria-label="Distribución de espacios en la ruleta"></div>
+      </div>
+
+      <!-- Predicción -->
+      <div class="ruleta-panel-prediccion" id="ruleta-panel-prediccion">
+        <h3 class="ruleta-prediccion-titulo">Predice el resultado</h3>
+        <div class="ruleta-opciones-prediccion" id="ruleta-opciones-prediccion"></div>
+      </div>
+
+      <!-- Ruleta -->
       <div id="imagenRuleta" class="zona-imagen ruleta-zona">
-        <div class="ruleta-contenedor">
-          <div class="ruleta-flecha">▼</div>
+        <div class="ruleta-contenedor" id="ruleta-contenedor">
+          <div class="ruleta-flecha" id="ruleta-flecha">▼</div>
           <div class="ruleta-disco" id="ruleta-disco">
             <img src="img/ruleta/ruleta-decorativa.png" alt="Ruleta de la suerte" class="ruleta-img">
+            <div class="ruleta-objetos">
+              <img src="img/objetos/moneda-dorada.png" alt="Moneda" class="obj-ruleta" style="top: 30%; left: 70%; transform: translate(-50%, -50%) rotate(45deg);">
+              <img src="img/objetos/llave-antigua.png" alt="Llave" class="obj-ruleta" style="top: 70%; left: 70%; transform: translate(-50%, -50%) rotate(135deg);">
+              <img src="img/objetos/pergamino-pista.png" alt="Pergamino" class="obj-ruleta" style="top: 70%; left: 30%; transform: translate(-50%, -50%) rotate(225deg);">
+              <img src="img/objetos/piedra-gris.png" alt="Piedra" class="obj-ruleta" style="top: 30%; left: 30%; transform: translate(-50%, -50%) rotate(315deg);">
+            </div>
           </div>
           <div class="ruleta-centro"></div>
         </div>
+        <p class="ruleta-espera oculto" id="ruleta-espera">La ruleta está girando...</p>
       </div>
 
-      <p class="mensaje-juego" id="mensaje-ruleta">¡Presiona girar!</p>
-      <div class="registro-ruleta" id="registro-ruleta"></div>
+      <!-- Resultado del intento -->
+      <div class="ruleta-resultado-panel oculto" id="ruleta-resultado-panel">
+        <h3 class="ruleta-resultado-titulo">Resultado de la ruleta</h3>
+        <div class="ruleta-resultado-grid">
+          <div class="ruleta-resultado-col">
+            <p class="ruleta-resultado-label">La ruleta eligió:</p>
+            <div class="ruleta-resultado-item" id="ruleta-resultado-real"></div>
+          </div>
+          <div class="ruleta-resultado-col">
+            <p class="ruleta-resultado-label">Tu predicción fue:</p>
+            <div class="ruleta-resultado-item" id="ruleta-resultado-prediccion"></div>
+          </div>
+        </div>
+        <p class="ruleta-comparacion" id="ruleta-comparacion"></p>
+        <p class="ruleta-puntos-ganados oculto" id="ruleta-puntos-ganados"></p>
+      </div>
 
-      <button class="btn btn-primario btn-grande" id="btn-girar-ruleta">Girar</button>
+      <!-- Resumen final -->
+      <div class="ruleta-resumen-final oculto" id="ruleta-resumen-final">
+        <h3 class="ruleta-resumen-titulo">¡Misión completada!</h3>
+        <p class="ruleta-resumen-aciertos" id="ruleta-resumen-aciertos"></p>
+        <div class="ruleta-resumen-resultados" id="ruleta-resumen-resultados"></div>
+        <p class="ruleta-resumen-educativo">La probabilidad nos ayuda a saber qué puede ocurrir, pero el azar puede cambiar en cada intento.</p>
+        <p class="ruleta-resumen-bonus oculto" id="ruleta-resumen-bonus"></p>
+        <p class="ruleta-premio-especial oculto" id="ruleta-premio-especial">Premio especial: Maestro de la Probabilidad</p>
+        <div class="ruleta-michi-celebracion oculto" id="ruleta-michi-celebracion">
+          <img src="img/personajes/michi-celebrando.png" alt="Michi celebrando">
+        </div>
+      </div>
+
+      <p class="mensaje-juego" id="mensaje-ruleta">Selecciona tu predicción para poder girar.</p>
+
+      <button class="btn btn-primario btn-grande" id="btn-girar-ruleta" disabled>Girar</button>
+      <button class="btn btn-primario btn-grande oculto" id="btn-ruleta-siguiente">Siguiente intento</button>
       <button class="btn btn-primario oculto" id="btn-ruleta-continuar">¡Al tesoro!</button>
     </div>
   </section>
