@@ -16,7 +16,8 @@
     <div class="contenido-pantalla">
       <img src="img/logo-titulo.png" alt="" class="logo-juego" id="logo-juego">
       <h1 class="titulo-juego">MISIÓN PROBABILIDAD</h1>
-      <p class="subtitulo">Búsqueda del tesoro con Michi Money</p>
+      <p class="subtitulo">Aventura de exploración con Michi Money</p>
+      <p class="edad-recomendada">Para exploradores de 10 a 14 años</p>
 
       <div id="personajePrincipal" class="zona-imagen personaje-principal">
         <img src="img/personajes/gato_explorador.png" alt="Michi Money, gato explorador">
@@ -31,88 +32,122 @@
 
   <dialog id="modal-instrucciones" class="modal">
     <div class="modal-contenido">
-      <h2>¿Cómo se juega?</h2>
+      <h2>¿Cómo jugar?</h2>
       <ul>
-        <li>Ayuda a <strong>Michi Money</strong> a encontrar el tesoro.</li>
-        <li>En cada misión explorarás y tomarás decisiones.</li>
-        <li>Observa qué pasa cuando repites las acciones.</li>
-        <li>No hay respuestas correctas ni incorrectas: ¡solo aventura!</li>
+        <li>Explora el mapa y completa misiones</li>
+        <li>Lanza, elige y descubre sorpresas</li>
+        <li>Observa qué pasa al repetir</li>
+        <li>¡Diviértete aprendiendo!</li>
       </ul>
-      <button class="btn btn-primario" id="btn-cerrar-instrucciones">Entendido</button>
+      <button class="btn btn-primario" id="btn-cerrar-instrucciones">¡Entendido!</button>
     </div>
   </dialog>
 
   <!-- PANTALLA 2: HISTORIA -->
   <section id="pantalla-historia" class="pantalla">
     <div class="contenido-pantalla panel-historia">
-      <h2>La aventura comienza</h2>
+      <h2>¡Un mapa misterioso!</h2>
       <p class="texto-historia">
-        Michi Money encontró un antiguo mapa del tesoro.<br><br>
-        Para llegar al cofre deberá elegir los caminos con mayor probabilidad de éxito.<br><br>
-        ¿Lo ayudarás?
+        Michi Money encontró un mapa del tesoro.<br>
+        Para llegar al cofre necesita tu ayuda.<br>
+        <strong>¿Estás listo para la aventura?</strong>
       </p>
 
       <div id="historiaImagen" class="zona-imagen historia-imagen">
         <img src="img/fondos/historia.png" alt="Mapa antiguo del tesoro">
       </div>
 
-      <button class="btn btn-primario" id="btn-comenzar-mision">Comenzar misión</button>
+      <button class="btn btn-primario btn-pulso" id="btn-comenzar-mision">¡Explorar el mapa!</button>
     </div>
   </section>
 
   <!-- PANTALLA 3: MAPA -->
   <section id="pantalla-mapa" class="pantalla">
-    <div class="contenido-pantalla">
-      <h2 class="titulo-seccion">Mapa del tesoro</h2>
-      <p class="texto-ayuda">Completa cada misión para desbloquear la siguiente.</p>
+    <div class="contenido-pantalla contenido-mapa-visual">
+      <h2 class="titulo-seccion">Mapa de exploración</h2>
+      <p class="texto-ayuda">Toca los puntos para explorar</p>
 
-      <div id="mapaJuego" class="zona-imagen mapa-decorativo">
-        <img src="img/fondos/mapa.png" alt="Camino hacia el tesoro" class="mapa-fondo">
+      <div class="mapa-interactivo-contenedor">
+        <div class="mapa-visual" id="mapa-visual">
+          <img src="img/fondos/mapa.png" alt="Mapa del tesoro" class="mapa-fondo-img">
+          
+          <!-- Personaje Michi que se mueve por el mapa -->
+          <div class="michi-viajero" id="michi-viajero">
+            <img src="img/personajes/gato_explorador.png" alt="Michi explorando">
+          </div>
+
+          <!-- Puntos de interés en el mapa - Posicionados según la imagen real del mapa -->
+          <!-- Inicio: abajo izquierda (Michi) -->
+          <button class="punto-mapa completado" data-id="inicio" data-pos="inicio" style="top: 88%; left: 18%;">
+            <div class="punto-icono">
+              <img src="img/personajes/gato_explorador.png" alt="Inicio">
+            </div>
+            <span class="punto-nombre">Inicio</span>
+            <span class="punto-estado"></span>
+          </button>
+
+          <!-- Dado: abajo izquierda, dentro del círculo dorado -->
+          <button class="punto-mapa" data-id="dado" data-pos="dado" style="top: 80%; left: 20%;">
+            <div class="punto-icono">
+              <img src="img/iconos/icono-dado.png" alt="Misión Dado">
+            </div>
+            <span class="punto-nombre">Dado</span>
+            <span class="punto-estado"></span>
+          </button>
+
+          <!-- Cajas: derecha abajo (3 cajas en la imagen) -->
+          <button class="punto-mapa bloqueado" data-id="cajas" data-pos="cajas" style="top: 65%; left: 72%;">
+            <div class="punto-icono">
+              <img src="img/iconos/icono-cajas.png" alt="Misión Cajas">
+            </div>
+            <span class="punto-nombre">Cajas</span>
+            <span class="punto-estado"></span>
+          </button>
+
+          <!-- Bolsa: centro-derecha, la bolsa grande con G -->
+          <button class="punto-mapa bloqueado" data-id="bolsa" data-pos="bolsa" style="top: 48%; left: 38%;">
+            <div class="punto-icono">
+              <img src="img/iconos/icono-bolsa.png" alt="Misión Bolsa">
+            </div>
+            <span class="punto-nombre">Bolsa</span>
+            <span class="punto-estado"></span>
+          </button>
+
+          <!-- Ruleta: arriba derecha -->
+          <button class="punto-mapa bloqueado" data-id="ruleta" data-pos="ruleta" style="top: 32%; left: 75%;">
+            <div class="punto-icono">
+              <img src="img/iconos/icono-ruleta.png" alt="Misión Ruleta">
+            </div>
+            <span class="punto-nombre">Ruleta</span>
+            <span class="punto-estado"></span>
+          </button>
+
+          <!-- Tesoro: arriba centro (cofre grande) -->
+          <button class="punto-mapa bloqueado" data-id="tesoro" data-pos="tesoro" style="top: 15%; left: 50%;">
+            <div class="punto-icono">
+              <img src="img/iconos/icono-tesoro.png" alt="Tesoro Final">
+            </div>
+            <span class="punto-nombre">Tesoro</span>
+            <span class="punto-estado"></span>
+          </button>
+
+          <!-- Camino visual (líneas conectoras siguiendo el sendero real del mapa) -->
+          <svg class="camino-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <!-- Inicio -> Dado -->
+            <path class="linea-camino" d="M 18 88 Q 19 84, 20 80" stroke-dasharray="5,5" />
+            <!-- Dado -> Cajas (siguiendo el camino serpenteante hacia la derecha) -->
+            <path class="linea-camino" d="M 20 80 Q 30 78, 40 74 Q 55 70, 72 65" stroke-dasharray="5,5" />
+            <!-- Cajas -> Bolsa (bajando y hacia la izquierda) -->
+            <path class="linea-camino" d="M 72 65 Q 60 60, 50 55 Q 42 52, 38 48" stroke-dasharray="5,5" />
+            <!-- Bolsa -> Ruleta (subiendo hacia la derecha) -->
+            <path class="linea-camino" d="M 38 48 Q 45 42, 55 38 Q 67 34, 75 32" stroke-dasharray="5,5" />
+            <!-- Ruleta -> Tesoro (hacia arriba y centro) -->
+            <path class="linea-camino" d="M 75 32 Q 68 25, 60 20 Q 55 17, 50 15" stroke-dasharray="5,5" />
+          </svg>
+        </div>
       </div>
 
-      <div class="camino-tablero" id="camino-tablero">
-        <div class="nodo-mapa completado" data-id="inicio">
-          <img src="img/personajes/gato_explorador.png" class="nodo-icono-img nodo-icono-mini" alt="">
-          <span class="nodo-nombre">Inicio</span>
-        </div>
-        <div class="flecha-camino">↓</div>
-
-        <div class="nodo-mapa" data-id="dado" data-mision="1">
-          <img src="img/iconos/icono-dado.png" class="nodo-icono-img" alt="">
-          <span class="nodo-nombre">Dado</span>
-          <span class="nodo-estado"></span>
-        </div>
-        <div class="flecha-camino">↓</div>
-
-        <div class="nodo-mapa bloqueado" data-id="cajas" data-mision="2">
-          <img src="img/iconos/icono-cajas.png" class="nodo-icono-img" alt="">
-          <span class="nodo-nombre">Cajas</span>
-          <span class="nodo-estado">🔒</span>
-        </div>
-        <div class="flecha-camino">↓</div>
-
-        <div class="nodo-mapa bloqueado" data-id="bolsa" data-mision="3">
-          <img src="img/iconos/icono-bolsa.png" class="nodo-icono-img" alt="">
-          <span class="nodo-nombre">Bolsa sorpresa</span>
-          <span class="nodo-estado">🔒</span>
-        </div>
-        <div class="flecha-camino">↓</div>
-
-        <div class="nodo-mapa bloqueado" data-id="ruleta" data-mision="4">
-          <img src="img/iconos/icono-ruleta.png" class="nodo-icono-img" alt="">
-          <span class="nodo-nombre">Ruleta</span>
-          <span class="nodo-estado">🔒</span>
-        </div>
-        <div class="flecha-camino">↓</div>
-
-        <div class="nodo-mapa bloqueado" data-id="tesoro" data-mision="final">
-          <img src="img/iconos/icono-tesoro.png" class="nodo-icono-img" alt="">
-          <span class="nodo-nombre">Tesoro</span>
-          <span class="nodo-estado">🔒</span>
-        </div>
-      </div>
-
-      <button class="btn btn-secundario btn-volver" id="btn-mapa-inicio">← Volver al inicio</button>
+      <button class="btn btn-secundario btn-volver" id="btn-mapa-inicio">Menú principal</button>
     </div>
   </section>
 
@@ -121,10 +156,10 @@
     <div class="contenido-pantalla">
       <header class="cabecera-mision">
         <button class="btn btn-mini" id="btn-dado-mapa">← Mapa</button>
-        <h2>Misión 1: Lanzar el dado</h2>
+        <h2>Misión 1: El dado mágico</h2>
       </header>
 
-      <p class="narracion">Michi avanza según el número del dado. ¡Lanza y observa!</p>
+      <p class="narracion">¡Lanza el dado para avanzar!</p>
 
       <div class="area-mision-dado">
         <div id="imagenDado" class="zona-imagen">
@@ -142,7 +177,7 @@
       <p class="mensaje-juego" id="mensaje-dado">Toca el dado para comenzar.</p>
 
       <button class="btn btn-primario btn-grande" id="btn-lanzar-dado">Lanzar dado</button>
-      <button class="btn btn-secundario oculto" id="btn-dado-continuar">Continuar al mapa →</button>
+      <button class="btn btn-secundario oculto" id="btn-dado-continuar">Misión completada → Volver al mapa</button>
     </div>
   </section>
 
@@ -154,7 +189,7 @@
         <h2>Misión 2: Cajas misteriosas</h2>
       </header>
 
-      <p class="narracion">Cada caja guarda algo distinto. Observa las pistas y elige una.</p>
+      <p class="narracion">Observa las pistas (🟡 = moneda, ⚫ = piedra) y elige</p>
 
       <div id="imagenCajas" class="zona-imagen cajas-banner">
         <img src="img/cajas/cajas-banner.png" alt="Tres cajas misteriosas">
@@ -190,7 +225,7 @@
       <div class="registro-resultados" id="registro-cajas"></div>
       <p class="mensaje-juego" id="mensaje-cajas">Abre las cajas que quieras explorar.</p>
 
-      <button class="btn btn-primario oculto" id="btn-cajas-continuar">Continuar al mapa →</button>
+      <button class="btn btn-primario oculto" id="btn-cajas-continuar">Misión completada → Volver al mapa</button>
     </div>
   </section>
 
@@ -202,7 +237,7 @@
         <h2>Misión 3: Bolsa sorpresa</h2>
       </header>
 
-      <p class="narracion">Mete la pata en la bolsa y saca fichas. ¡Repite y observa!</p>
+      <p class="narracion">¡Toca la bolsa y descubre qué hay dentro!</p>
 
       <div id="imagenBolsa" class="zona-imagen bolsa-zona">
         <button class="bolsa-clic" id="bolsa-clic" type="button" aria-label="Sacar ficha de la bolsa">
@@ -228,7 +263,7 @@
         </div>
       </div>
 
-      <button class="btn btn-primario oculto" id="btn-bolsa-continuar">Continuar al mapa →</button>
+      <button class="btn btn-primario oculto" id="btn-bolsa-continuar">Misión completada → Continuar</button>
     </div>
   </section>
 
@@ -240,7 +275,7 @@
         <h2>Misión 4: Ruleta de la suerte</h2>
       </header>
 
-      <p class="narracion">Gira la ruleta y descubre qué te trae la suerte.</p>
+      <p class="narracion">¡Gira y descubre tu premio!</p>
 
       <div id="imagenRuleta" class="zona-imagen ruleta-zona">
         <div class="ruleta-contenedor">
@@ -256,7 +291,7 @@
       <div class="registro-ruleta" id="registro-ruleta"></div>
 
       <button class="btn btn-primario btn-grande" id="btn-girar-ruleta">Girar</button>
-      <button class="btn btn-primario oculto" id="btn-ruleta-continuar">Ir al tesoro →</button>
+      <button class="btn btn-primario oculto" id="btn-ruleta-continuar">¡Al tesoro!</button>
     </div>
   </section>
 
@@ -276,13 +311,16 @@
       <div class="confeti-contenedor" id="confeti-contenedor" aria-hidden="true"></div>
 
       <div class="mensaje-final oculto" id="mensaje-final">
-        <h2>¡Lo lograste!</h2>
+        <h2>¡Misión cumplida!</h2>
         <p>
-          Mientras jugabas aprendiste que algunas opciones tienen más posibilidades que otras.<br>
-          Eso se llama <strong>Probabilidad</strong>.
+          Descubriste que algunas opciones tienen más posibilidades que otras.<br>
+          <strong>¡Eso es la Probabilidad!</strong>
         </p>
-        <button class="btn btn-primario" id="btn-reiniciar">Jugar de nuevo</button>
-        <button class="btn btn-secundario" id="btn-final-inicio">Volver al inicio</button>
+        <p class="mensaje-aprendizaje">
+          Aprendiste jugando: algunas cajas, fichas y premios aparecen más seguido que otros.
+        </p>
+        <button class="btn btn-primario" id="btn-reiniciar">Nueva aventura</button>
+        <button class="btn btn-secundario" id="btn-final-inicio">Inicio</button>
       </div>
     </div>
   </section>

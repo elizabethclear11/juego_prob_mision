@@ -39,22 +39,22 @@
 
   const MENSAJES = {
     suerte: [
-      '¡Qué buena suerte!',
-      '¡Michi encontró otra pista!',
-      '¡Sigue explorando!',
-      '¡Qué emoción!'
+      '¡Genial!',
+      '¡Increíble!',
+      '¡Sigue así!',
+      '¡Perfecto!'
     ],
     sinMoneda: [
-      'Esta vez no apareció una moneda.',
-      'Solo una piedra esta vez.',
-      '¡Sigue explorando!',
-      'Michi no se rinde.'
+      'Inténtalo otra vez',
+      'Sigue buscando',
+      'Otra oportunidad',
+      '¡No te rindas!'
     ],
     neutral: [
-      '¡Sigue explorando!',
-      'Michi encontró otra pista.',
-      '¡Qué interesante!',
-      'Observa qué pasa si repites.'
+      '¡Interesante!',
+      'Continúa explorando',
+      '¡Sigue jugando!',
+      '¡Adelante!'
     ]
   };
 
@@ -116,6 +116,44 @@
     setTimeout(() => elemento.classList.remove('destello-dorado'), 600);
   }
 
+  /** Crear partículas al hacer clic (feedback visual) */
+  function crearParticulas(x, y, color = 'var(--dorado)') {
+    const contenedor = document.createElement('div');
+    contenedor.style.position = 'fixed';
+    contenedor.style.left = x + 'px';
+    contenedor.style.top = y + 'px';
+    contenedor.style.pointerEvents = 'none';
+    contenedor.style.zIndex = '1000';
+    document.body.appendChild(contenedor);
+
+    for (let i = 0; i < 8; i++) {
+      const particula = document.createElement('div');
+      particula.style.position = 'absolute';
+      particula.style.width = '6px';
+      particula.style.height = '6px';
+      particula.style.background = color;
+      particula.style.borderRadius = '50%';
+      particula.style.boxShadow = `0 0 8px ${color}`;
+      
+      const angulo = (Math.PI * 2 * i) / 8;
+      const distancia = 40 + Math.random() * 30;
+      const dx = Math.cos(angulo) * distancia;
+      const dy = Math.sin(angulo) * distancia;
+      
+      particula.animate([
+        { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+        { transform: `translate(${dx}px, ${dy}px) scale(0)`, opacity: 0 }
+      ], {
+        duration: 600,
+        easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)'
+      });
+      
+      contenedor.appendChild(particula);
+    }
+
+    setTimeout(() => contenedor.remove(), 650);
+  }
+
   /** Chispas doradas en pantalla de inicio */
   function crearChispas() {
     const contenedor = document.getElementById('chispas-fondo');
@@ -162,31 +200,90 @@
   /* ═══════════════════════════════════════
      MAPA
      ═══════════════════════════════════════ */
-  function actualizarMapa() {
-    const nodos = document.querySelectorAll('.nodo-mapa[data-id]');
-    nodos.forEach(nodo => {
-      const id = nodo.dataset.id;
-      const estadoNodo = nodo.querySelector('.nodo-estado');
+  
+  // Posiciones de Michi en el mapa (coordenadas top, left en %)
+  // Estas coordenadas coinciden EXACTAMENTE con los iconos en la imagen del mapa
+  const POSICIONES_MAPA = {
+    inicio: { top: 88, left: 18 },   // Abajo izquierda (Michi)
+    dado: { top: 80, left: 20 },     // Dado en círculo dorado, abajo izquierda
+    cajas: { top: 65, left: 72 },    // Las 3 cajas a la derecha
+    bolsa: { top: 48, left: 38 },    // Bolsa grande con G
+    ruleta: { top: 32, left: 75 },   // Ruleta arriba derecha
+    tesoro: { top: 15, left: 50 }    // Cofre grande arriba centro
+  };
 
-      nodo.classList.remove('bloqueado', 'completado', 'disponible');
+  // Orden de las misiones para determinar el camino
+  const ORDEN_CAMINO = ['inicio', 'dado', 'cajas', 'bolsa', 'ruleta', 'tesoro'];
+
+  function obtenerPosicionActual() {
+    // Encontrar la última misión completada para saber dónde está Michi
+    let ultimaCompletada = 'inicio';
+    for (const id of MISIONES_ORDEN) {
+      if (misionCompletada(id)) {
+        ultimaCompletada = id;
+      } else {
+        break;
+      }
+    }
+    return ultimaCompletada;
+  }
+
+  function actualizarMapa() {
+    const puntos = document.querySelectorAll('.punto-mapa[data-id]');
+    const michiViajero = document.getElementById('michi-viajero');
+    
+    let ultimaCompletada = 'inicio';
+    
+    puntos.forEach(punto => {
+      const id = punto.dataset.id;
+      const estadoVisual = punto.querySelector('.punto-estado');
+
+      punto.classList.remove('bloqueado', 'completado', 'disponible');
 
       if (id === 'inicio') {
-        nodo.classList.add('completado');
-        if (estadoNodo) estadoNodo.textContent = '✓';
+        punto.classList.add('completado');
+        if (estadoVisual) estadoVisual.textContent = '';
         return;
       }
 
       if (misionCompletada(id)) {
-        nodo.classList.add('completado');
-        if (estadoNodo) estadoNodo.textContent = '⭐';
+        punto.classList.add('completado');
+        if (estadoVisual) estadoVisual.textContent = '';
+        ultimaCompletada = id;
       } else if (misionDesbloqueada(id)) {
-        nodo.classList.add('disponible');
-        if (estadoNodo) estadoNodo.textContent = '→';
+        punto.classList.add('disponible');
+        if (estadoVisual) estadoVisual.textContent = '';
       } else {
-        nodo.classList.add('bloqueado');
-        if (estadoNodo) estadoNodo.textContent = '🔒';
+        punto.classList.add('bloqueado');
+        if (estadoVisual) estadoVisual.textContent = '';
       }
     });
+
+    // Posicionar a Michi en la última misión completada
+    if (michiViajero && POSICIONES_MAPA[ultimaCompletada]) {
+      const pos = POSICIONES_MAPA[ultimaCompletada];
+      michiViajero.style.top = pos.top + '%';
+      michiViajero.style.left = pos.left + '%';
+    }
+  }
+
+  function moverMichiA(destino) {
+    const michiViajero = document.getElementById('michi-viajero');
+    if (!michiViajero || !POSICIONES_MAPA[destino]) return;
+
+    const pos = POSICIONES_MAPA[destino];
+    
+    // Agregar clase de animación
+    michiViajero.classList.add('viajando');
+    
+    // Mover a la nueva posición con transformación suave
+    michiViajero.style.top = pos.top + '%';
+    michiViajero.style.left = pos.left + '%';
+
+    // Remover clase después de la animación
+    setTimeout(() => {
+      michiViajero.classList.remove('viajando');
+    }, 1200);
   }
 
   function irAMision(id) {
@@ -194,13 +291,19 @@
 
     if (id === 'tesoro') {
       if (MISIONES_ORDEN.every(m => misionCompletada(m))) {
-        iniciarFinal();
+        moverMichiA('tesoro');
+        setTimeout(() => iniciarFinal(), 1500);
       }
       return;
     }
 
-    mostrarPantalla(id);
-    inicializarMision(id);
+    // Mover a Michi visualmente antes de cambiar de pantalla
+    moverMichiA(id);
+    
+    setTimeout(() => {
+      mostrarPantalla(id);
+      inicializarMision(id);
+    }, 1500);
   }
 
   function inicializarMision(id) {
@@ -241,18 +344,22 @@
     btnLanzar.disabled = false;
 
     if (posicion >= dadoMeta) {
-      mensaje.textContent = '¡Michi llegó al final del camino!';
+      mensaje.textContent = '¡Meta alcanzada!';
       btnLanzar.classList.add('oculto');
       btnContinuar.classList.remove('oculto');
       return;
     }
 
-    mensaje.textContent = 'Presiona el dado para avanzar.';
+    mensaje.textContent = 'Toca el dado o el botón para lanzar';
 
     btnLanzar.onclick = async () => {
       if (lanzando || posicion >= dadoMeta) return;
       lanzando = true;
       btnLanzar.disabled = true;
+
+      // Efecto de partículas al lanzar
+      const rect = dado.getBoundingClientRect();
+      crearParticulas(rect.left + rect.width / 2, rect.top + rect.height / 2, 'var(--dorado-brillo)');
 
       /* Animación de giro */
       dado.classList.add('girando');
@@ -282,11 +389,11 @@
         }
       });
 
-      mensaje.textContent = `¡Salió ${resultado}! Michi avanza ${pasosReales} paso${pasosReales !== 1 ? 's' : ''}. ${mensajeAleatorio(MENSAJES.neutral)}`;
+      mensaje.textContent = `Salió ${resultado}! ${pasosReales > 0 ? '+' + pasosReales + ' pasos' : ''} ${mensajeAleatorio(MENSAJES.neutral)}`;
 
       if (posicion >= dadoMeta) {
         await sleep(800);
-        mensaje.textContent = '¡Michi encontró otra pista! El camino continúa.';
+        mensaje.textContent = '¡Meta alcanzada! Michi encontró una pista.';
         completarMision('dado');
         btnLanzar.classList.add('oculto');
         btnContinuar.classList.remove('oculto');
@@ -312,7 +419,7 @@
     resultado.innerHTML = '';
     registro.innerHTML = '';
     btnContinuar.classList.add('oculto');
-    mensaje.textContent = 'Abre las cajas que quieras explorar.';
+    mensaje.textContent = 'Abre las cajas que quieras';
 
     const nombresCaja = { azul: 'Azul', verde: 'Bronce', roja: 'Hierro' };
     const imgsCaja = { azul: IMG.cajas.azul, verde: IMG.cajas.bronce, roja: IMG.cajas.hierro };
@@ -326,6 +433,10 @@
 
       caja.onclick = async () => {
         if (caja.classList.contains('abierta')) return;
+
+        // Efecto de partículas al hacer clic
+        const rect = caja.getBoundingClientRect();
+        crearParticulas(rect.left + rect.width / 2, rect.top + rect.height / 2, 'var(--dorado)');
 
         const prob = parseFloat(caja.dataset.prob);
         const hayMoneda = Math.random() < prob;
@@ -368,7 +479,7 @@
         if (cajasAbiertas >= cajasMinimo) {
           completarMision('cajas');
           btnContinuar.classList.remove('oculto');
-          mensaje.textContent = '¡Michi encontró otra pista! Puedes seguir explorando o continuar.';
+          mensaje.textContent = '¡Desafío completado! Puedes seguir o continuar.';
         }
       };
     });
@@ -404,6 +515,10 @@
       if (ocupado) return;
       ocupado = true;
 
+      // Efecto de partículas al tocar la bolsa
+      const rect = bolsa.getBoundingClientRect();
+      crearParticulas(rect.left + rect.width / 2, rect.top + rect.height / 2, 'var(--dorado-claro)');
+
       bolsa.classList.add('sacudiendo');
       await sleep(400);
       bolsa.classList.remove('sacudiendo');
@@ -427,8 +542,8 @@
 
       contador.textContent = `Intentos: ${bolsaIntentos}`;
       mensaje.textContent = esAzul
-        ? '¡Salió una ficha azul! ' + mensajeAleatorio(MENSAJES.neutral)
-        : '¡Salió una ficha de plata! ' + mensajeAleatorio(MENSAJES.neutral);
+        ? 'Ficha azul! ' + mensajeAleatorio(MENSAJES.neutral)
+        : 'Ficha plata! ' + mensajeAleatorio(MENSAJES.neutral);
 
       if (bolsaIntentos >= bolsaMinimoGrafico) {
         mostrarGraficoBolsa();
@@ -463,11 +578,31 @@
   /* ═══════════════════════════════════════
      MISIÓN 4: RULETA
      ═══════════════════════════════════════ */
+  
+  // Configuración de la ruleta
+  // IMPORTANTE: Estos ángulos deben coincidir con la imagen real de la ruleta
+  // La flecha apunta hacia ARRIBA (0 grados)
+  const RULETA_CONFIG = {
+    // Mapeo de tipos de premio a sus ángulos en la imagen
+    // Los ángulos representan dónde están los sectores en la imagen de la ruleta
+    // 0° = arriba (donde apunta la flecha)
+    sectores: [
+      { tipo: 'moneda', angulo: 0, color: '#D4A017' },      // Arriba
+      { tipo: 'llave', angulo: 45, color: '#8D6E63' },      // Derecha-arriba
+      { tipo: 'moneda', angulo: 90, color: '#D4A017' },     // Derecha
+      { tipo: 'pista', angulo: 135, color: '#F0C75E' },     // Derecha-abajo
+      { tipo: 'moneda', angulo: 180, color: '#D4A017' },    // Abajo
+      { tipo: 'piedra', angulo: 225, color: '#5D4037' },    // Izquierda-abajo
+      { tipo: 'llave', angulo: 270, color: '#8D6E63' },     // Izquierda
+      { tipo: 'pista', angulo: 315, color: '#F0C75E' }      // Izquierda-arriba
+    ]
+  };
+
   const RULETA_OPCIONES = [
-    { tipo: 'moneda', img: IMG.moneda, peso: 40, mensaje: '¡Qué buena suerte! Encontraste una moneda.' },
-    { tipo: 'llave', img: IMG.llave, peso: 25, mensaje: '¡Michi encontró otra pista! Una llave misteriosa.' },
-    { tipo: 'pista', img: IMG.pista, peso: 20, mensaje: '¡Michi encontró otra pista!' },
-    { tipo: 'piedra', img: IMG.piedra, peso: 15, mensaje: 'Esta vez solo una piedra. ¡Sigue explorando!' }
+    { tipo: 'moneda', peso: 40, mensaje: '¡Moneda dorada!', img: IMG.moneda },
+    { tipo: 'llave', peso: 25, mensaje: '¡Llave misteriosa!', img: IMG.llave },
+    { tipo: 'pista', peso: 20, mensaje: '¡Pergamino con pista!', img: IMG.pista },
+    { tipo: 'piedra', peso: 15, mensaje: 'Piedra gris', img: IMG.piedra }
   ];
 
   function crearPoolRuleta() {
@@ -479,7 +614,7 @@
   }
 
   const poolRuleta = crearPoolRuleta();
-  let anguloRuleta = 0;
+  let anguloRuletaActual = 0;
 
   function imgRuletaPorTipo(tipo) {
     const mapa = {
@@ -489,6 +624,13 @@
       piedra: IMG.piedra
     };
     return mapa[tipo] || IMG.moneda;
+  }
+
+  function obtenerSectorPorTipo(tipo) {
+    // Filtrar sectores que coincidan con el tipo
+    const sectoresDelTipo = RULETA_CONFIG.sectores.filter(s => s.tipo === tipo);
+    // Elegir uno aleatorio
+    return sectoresDelTipo[Math.floor(Math.random() * sectoresDelTipo.length)];
   }
 
   function initMisionRuleta() {
@@ -504,6 +646,13 @@
     btnGirar.classList.remove('oculto');
     btnGirar.disabled = false;
 
+    /* Resetear rotación inicial */
+    anguloRuletaActual = 0;
+    disco.style.transition = 'none';
+    disco.style.transform = `rotate(0deg)`;
+    // Forzar reflow
+    void disco.offsetWidth;
+
     /* Mostrar giros anteriores */
     estado.resultadosRuleta.forEach(r => {
       const chip = document.createElement('span');
@@ -517,13 +666,13 @@
     if (ruletaGiros >= ruletaMinimo && misionCompletada('ruleta')) {
       btnGirar.classList.add('oculto');
       btnContinuar.classList.remove('oculto');
-      mensaje.textContent = '¡La ruleta te guió bien! El tesoro te espera.';
+      mensaje.textContent = '¡Desafío completado! El tesoro te espera.';
       return;
     }
 
     mensaje.textContent = ruletaGiros > 0
-      ? `Has girado ${ruletaGiros} vez${ruletaGiros !== 1 ? 'es' : ''}. ¡Sigue!`
-      : '¡Presiona girar!';
+      ? `Giros: ${ruletaGiros}. ¡Sigue girando!`
+      : '¡Presiona girar para descubrir tu premio!';
 
     let girando = false;
 
@@ -532,31 +681,57 @@
       girando = true;
       btnGirar.disabled = true;
 
-      const resultado = poolRuleta[Math.floor(Math.random() * poolRuleta.length)];
-      const girosExtra = 5 + Math.floor(Math.random() * 3);
-      anguloRuleta += girosExtra * 360 + Math.random() * 360;
+      // Efecto de partículas al girar
+      const rect = disco.getBoundingClientRect();
+      crearParticulas(rect.left + rect.width / 2, rect.top + rect.height / 2, 'var(--dorado)');
 
-      disco.style.transform = `rotate(${anguloRuleta}deg)`;
+      /* 1. Seleccionar resultado basado en probabilidades */
+      const resultadoObjeto = poolRuleta[Math.floor(Math.random() * poolRuleta.length)];
+      
+      /* 2. Obtener un sector que tenga ese tipo de premio */
+      const sectorGanador = obtenerSectorPorTipo(resultadoObjeto.tipo);
+      
+      /* 3. Calcular ángulo de rotación
+         La flecha apunta a 0° (arriba). Para que un sector termine bajo la flecha,
+         necesitamos rotar la ruleta de forma que ese sector quede en 0°.
+         
+         Si el sector está en el ángulo X, y queremos que quede en 0°,
+         necesitamos rotar: (360 - X) grados (+ vueltas completas)
+      */
+      
+      const vueltasCompletas = 5 + Math.floor(Math.random() * 4); // 5-8 vueltas
+      const variacionDentroDelSector = (Math.random() - 0.5) * 30; // ±15 grados dentro del sector
+      
+      // Calcular cuánto girar para que el sector ganador quede arriba
+      const rotacionNecesaria = 360 - sectorGanador.angulo + variacionDentroDelSector;
+      const anguloFinal = anguloRuletaActual + (vueltasCompletas * 360) + rotacionNecesaria;
+      
+      // Aplicar rotación
+      disco.style.transition = 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)';
+      disco.style.transform = `rotate(${anguloFinal}deg)`;
+      
+      // Actualizar ángulo actual (normalizado a 0-360)
+      anguloRuletaActual = anguloFinal % 360;
 
-      await sleep(4000);
+      await sleep(4200);
 
-      mensaje.textContent = resultado.mensaje;
+      mensaje.textContent = resultadoObjeto.mensaje;
       destello(disco);
 
       const chip = document.createElement('span');
       chip.className = 'chip-resultado';
-      chip.appendChild(crearImg(resultado.img, resultado.tipo));
-      chip.appendChild(document.createTextNode(resultado.tipo));
+      chip.appendChild(crearImg(resultadoObjeto.img, resultadoObjeto.tipo));
+      chip.appendChild(document.createTextNode(resultadoObjeto.tipo));
       registro.appendChild(chip);
 
-      estado.resultadosRuleta.push({ tipo: resultado.tipo, img: resultado.img });
+      estado.resultadosRuleta.push({ tipo: resultadoObjeto.tipo, img: resultadoObjeto.img });
       ruletaGiros++;
       guardarEstado();
 
       if (ruletaGiros >= ruletaMinimo) {
         completarMision('ruleta');
         await sleep(600);
-        mensaje.textContent = '¡Lo lograste! El tesoro está cerca.';
+        mensaje.textContent = '¡Desafío superado! El tesoro está cerca.';
         btnGirar.classList.add('oculto');
         btnContinuar.classList.remove('oculto');
       } else {
@@ -665,11 +840,23 @@
       mostrarPantalla('inicio');
     });
 
-    document.querySelectorAll('.nodo-mapa[data-id]').forEach(nodo => {
-      nodo.addEventListener('click', () => {
-        const id = nodo.dataset.id;
+    document.querySelectorAll('.punto-mapa[data-id]').forEach(punto => {
+      punto.addEventListener('click', (e) => {
+        const id = punto.dataset.id;
         if (id === 'inicio') return;
-        if (nodo.classList.contains('bloqueado')) return;
+        if (punto.classList.contains('bloqueado')) {
+          // Feedback visual cuando intentan acceder a una misión bloqueada
+          punto.style.animation = 'none';
+          setTimeout(() => {
+            punto.style.animation = 'sacudirBloqueado 0.5s ease';
+          }, 10);
+          return;
+        }
+        
+        // Efecto de partículas al hacer clic en un punto
+        const rect = punto.getBoundingClientRect();
+        crearParticulas(rect.left + rect.width / 2, rect.top + rect.height / 2, 'var(--dorado)');
+        
         irAMision(id);
       });
     });
@@ -733,10 +920,10 @@
 
     /* Si ya completó todo, permitir ir al tesoro desde el mapa */
     if (MISIONES_ORDEN.every(m => misionCompletada(m))) {
-      const nodoTesoro = document.querySelector('.nodo-mapa[data-id="tesoro"]');
-      if (nodoTesoro) {
-        nodoTesoro.classList.remove('bloqueado');
-        nodoTesoro.classList.add('disponible');
+      const puntoTesoro = document.querySelector('.punto-mapa[data-id="tesoro"]');
+      if (puntoTesoro) {
+        puntoTesoro.classList.remove('bloqueado');
+        puntoTesoro.classList.add('disponible');
       }
     }
   });

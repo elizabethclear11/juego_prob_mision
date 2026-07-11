@@ -189,8 +189,28 @@ button {
   text-align: center;
   color: var(--dorado-claro);
   font-size: 1.05rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
   letter-spacing: 1px;
+}
+
+.edad-recomendada {
+  text-align: center;
+  color: var(--blanco);
+  background: linear-gradient(135deg, var(--azul-acento), var(--cafe));
+  border: 2px solid var(--dorado);
+  border-radius: 20px;
+  padding: 0.6rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0 auto 1.5rem;
+  display: inline-block;
+  box-shadow: 0 0 16px var(--resplandor-dorado);
+  animation: pulsoEdad 3s ease-in-out infinite;
+}
+
+@keyframes pulsoEdad {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 16px var(--resplandor-dorado); }
+  50%      { transform: scale(1.03); box-shadow: 0 0 24px var(--resplandor-dorado); }
 }
 
 .titulo-seccion {
@@ -318,6 +338,10 @@ button {
   animation: pulsoBoton 2.5s ease-in-out infinite;
 }
 
+.btn-pulso {
+  animation: pulsoBoton 2s ease-in-out infinite;
+}
+
 @keyframes pulsoBoton {
   0%, 100% { box-shadow: 0 4px 0 var(--cafe-oscuro), 0 0 20px var(--resplandor-dorado); }
   50%      { box-shadow: 0 4px 0 var(--cafe-oscuro), 0 0 36px rgba(212, 160, 23, 0.6); }
@@ -421,79 +445,255 @@ button {
   color: var(--blanco-suave);
 }
 
-/* ── Mapa ── */
-.camino-tablero {
+/* ── Mapa visual interactivo ── */
+.contenido-mapa-visual {
+  max-width: 900px;
+}
+
+.mapa-interactivo-contenedor {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  margin: 1.5rem auto;
+  border: 3px solid var(--dorado);
+  border-radius: var(--radio);
+  box-shadow: 
+    0 0 32px var(--resplandor-dorado),
+    0 16px 48px var(--sombra-fuerte);
+  overflow: hidden;
+  background: var(--negro-suave);
+}
+
+.mapa-visual {
+  position: relative;
+  width: 100%;
+  padding-bottom: 140%; /* Ratio vertical del mapa */
+  background: linear-gradient(145deg, var(--azul-oscuro), var(--negro));
+}
+
+.mapa-fondo-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.75;
+  filter: brightness(0.85) contrast(1.1);
+}
+
+/* Camino visual con SVG */
+.camino-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.linea-camino {
+  fill: none;
+  stroke: var(--dorado);
+  stroke-width: 0.6;
+  opacity: 0.7;
+  stroke-dasharray: 4, 4;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 4px var(--resplandor-dorado));
+  animation: caminoAnimado 30s linear infinite;
+}
+
+@keyframes caminoAnimado {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: 100; }
+}
+
+/* Puntos de interés en el mapa */
+.punto-mapa {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  background: none;
+  border: none;
+  cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.25rem;
-  margin: 1rem 0;
+  transition: transform 0.3s ease, filter 0.3s;
 }
 
-.nodo-mapa {
-  width: min(300px, 92vw);
-  background: linear-gradient(135deg, var(--gris-oscuro) 0%, var(--azul-medio) 100%);
-  border-radius: var(--radio);
-  padding: 1rem 1.25rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  box-shadow: 0 8px 24px var(--sombra);
-  border: 2px solid var(--gris-medio);
-  cursor: pointer;
-  transition: transform var(--transicion), border-color var(--transicion), box-shadow var(--transicion);
-}
-
-.nodo-mapa:hover:not(.bloqueado) {
-  transform: translateX(6px) scale(1.02);
-  border-color: var(--dorado);
-  box-shadow: 0 8px 32px var(--sombra), 0 0 20px var(--resplandor-dorado);
-}
-
-.nodo-mapa.bloqueado {
-  opacity: 0.4;
-  cursor: not-allowed;
-  filter: grayscale(0.6);
-}
-
-.nodo-mapa.completado {
-  border-color: var(--dorado);
-  background: linear-gradient(135deg, var(--cafe-oscuro) 0%, var(--azul-acento) 100%);
-}
-
-.nodo-mapa.disponible {
-  border-color: var(--dorado-claro);
-  animation: pulsoNodo 2s ease-in-out infinite;
-}
-
-@keyframes pulsoNodo {
-  0%, 100% { box-shadow: 0 8px 24px var(--sombra), 0 0 8px var(--resplandor-dorado); }
-  50%      { box-shadow: 0 8px 32px var(--sombra), 0 0 24px var(--resplandor-dorado); }
-}
-
-.nodo-icono-img {
-  width: 44px;
-  height: 44px;
-  object-fit: contain;
-  flex-shrink: 0;
-  filter: drop-shadow(0 0 8px var(--resplandor-dorado));
-}
-
-.nodo-icono-mini {
-  width: 36px;
-  height: 36px;
+.punto-icono {
+  width: 56px;
+  height: 56px;
+  background: radial-gradient(circle, var(--azul-medio), var(--negro-suave));
+  border: 3px solid var(--gris-medio);
   border-radius: 50%;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 4px 16px var(--sombra-fuerte);
+  transition: all 0.3s ease;
+  position: relative;
 }
 
-.nodo-nombre { flex: 1; font-weight: 700; font-size: 1.05rem; color: var(--blanco); }
-.nodo-estado { font-size: 1.2rem; }
+.punto-icono::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent, var(--dorado), transparent);
+  opacity: 0;
+  animation: giroBorde 3s linear infinite;
+  z-index: -1;
+}
 
-.flecha-camino {
-  color: var(--dorado);
-  font-size: 1.5rem;
-  font-weight: 900;
-  line-height: 1;
-  text-shadow: 0 0 8px var(--resplandor-dorado);
+@keyframes giroBorde {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.punto-icono img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.punto-nombre {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--blanco);
+  text-shadow: 
+    0 0 8px var(--negro),
+    0 1px 3px var(--sombra-fuerte);
+  background: rgba(10, 14, 20, 0.8);
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid rgba(212, 160, 23, 0.3);
+}
+
+.punto-estado {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  font-size: 1.2rem;
+  filter: drop-shadow(0 2px 4px var(--sombra));
+}
+
+/* Indicadores visuales de estado sin emojis */
+.punto-mapa.completado .punto-icono::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 18px;
+  height: 18px;
+  background: var(--dorado);
+  border-radius: 50%;
+  border: 2px solid var(--negro);
+  box-shadow: 0 0 12px var(--resplandor-dorado);
+}
+
+.punto-mapa.bloqueado .punto-icono::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 18px;
+  height: 18px;
+  background: var(--gris-oscuro);
+  border-radius: 4px;
+  border: 2px solid var(--gris-medio);
+  box-shadow: 0 2px 6px var(--sombra);
+}
+
+/* Estados de los puntos */
+.punto-mapa.disponible .punto-icono {
+  border-color: var(--dorado-claro);
+  animation: pulsoDisponible 2s ease-in-out infinite;
+}
+
+.punto-mapa.disponible .punto-icono::before {
+  opacity: 1;
+}
+
+@keyframes pulsoDisponible {
+  0%, 100% { 
+    box-shadow: 0 4px 16px var(--sombra-fuerte), 0 0 16px var(--resplandor-dorado);
+    transform: scale(1);
+  }
+  50% { 
+    box-shadow: 0 4px 16px var(--sombra-fuerte), 0 0 32px var(--resplandor-dorado);
+    transform: scale(1.08);
+  }
+}
+
+.punto-mapa.completado .punto-icono {
+  border-color: var(--dorado);
+  background: radial-gradient(circle, var(--cafe), var(--azul-acento));
+  box-shadow: 0 4px 16px var(--sombra-fuerte), 0 0 20px rgba(212, 160, 23, 0.4);
+}
+
+.punto-mapa.bloqueado {
+  cursor: not-allowed;
+  opacity: 0.5;
+  filter: grayscale(0.7);
+}
+
+.punto-mapa.bloqueado .punto-icono {
+  border-color: var(--gris-medio);
+}
+
+.punto-mapa:hover:not(.bloqueado) {
+  transform: translate(-50%, -50%) scale(1.15);
+  filter: drop-shadow(0 0 16px var(--resplandor-dorado));
+}
+
+.punto-mapa:hover:not(.bloqueado) .punto-icono {
+  border-color: var(--dorado-brillo);
+  box-shadow: 0 6px 24px var(--sombra-fuerte), 0 0 24px var(--resplandor-dorado);
+}
+
+.punto-mapa:active:not(.bloqueado) {
+  transform: translate(-50%, -50%) scale(1.08);
+}
+
+/* Michi viajero */
+.michi-viajero {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  z-index: 20;
+  transition: 
+    top 1.5s cubic-bezier(0.45, 0.05, 0.55, 0.95), 
+    left 1.5s cubic-bezier(0.45, 0.05, 0.55, 0.95),
+    transform 0.3s ease;
+  filter: drop-shadow(0 4px 12px var(--sombra-fuerte))
+          drop-shadow(0 0 20px var(--resplandor-dorado));
+  pointer-events: none;
+  transform-origin: center center;
+}
+
+.michi-viajero img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  animation: michiFlota 2.5s ease-in-out infinite;
+}
+
+@keyframes michiFlota {
+  0%, 100% { transform: translateY(0) rotate(-5deg); }
+  50%      { transform: translateY(-8px) rotate(5deg); }
+}
+
+.michi-viajero.viajando {
+  animation: saltarViaje 0.4s ease-in-out 3;
+  filter: drop-shadow(0 6px 16px var(--sombra-fuerte))
+          drop-shadow(0 0 32px var(--resplandor-dorado));
+}
+
+@keyframes saltarViaje {
+  0%, 100% { transform: translateY(0) scale(1) rotate(0deg); }
+  50%      { transform: translateY(-25px) scale(1.2) rotate(360deg); }
 }
 
 /* ── Misiones ── */
@@ -569,8 +769,12 @@ button {
 }
 
 .dado-interactivo:hover {
-  filter: drop-shadow(0 0 20px var(--resplandor-dorado));
-  transform: scale(1.05);
+  filter: drop-shadow(0 0 24px var(--resplandor-dorado));
+  transform: scale(1.1) rotate(-5deg);
+}
+
+.dado-interactivo:active {
+  transform: scale(1.05) rotate(5deg);
 }
 
 .dado-interactivo.girando {
@@ -658,8 +862,12 @@ button {
 }
 
 .caja-item:hover:not(.abierta) {
-  transform: translateY(-8px) scale(1.04);
-  filter: drop-shadow(0 0 20px var(--resplandor-dorado));
+  transform: translateY(-12px) scale(1.08) rotate(-2deg);
+  filter: drop-shadow(0 0 28px var(--resplandor-dorado));
+}
+
+.caja-item:active:not(.abierta) {
+  transform: translateY(-8px) scale(1.05);
 }
 
 .caja-cuerpo {
@@ -768,8 +976,12 @@ button {
 }
 
 .bolsa-clic:hover {
-  transform: scale(1.1);
-  filter: drop-shadow(0 0 24px var(--resplandor-dorado));
+  transform: scale(1.15) rotate(-3deg);
+  filter: drop-shadow(0 0 32px var(--resplandor-dorado));
+}
+
+.bolsa-clic:active {
+  transform: scale(1.05) rotate(2deg);
 }
 
 .bolsa-clic.sacudiendo {
@@ -780,6 +992,12 @@ button {
   0%, 100% { transform: rotate(0); }
   25%      { transform: rotate(-12deg); }
   75%      { transform: rotate(12deg); }
+}
+
+@keyframes sacudirBloqueado {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(-8px); }
+  75%      { transform: translateX(8px); }
 }
 
 .bolsa-clic img {
@@ -930,7 +1148,9 @@ button {
 }
 
 .ruleta-disco:hover {
-  box-shadow: 0 0 48px var(--resplandor-dorado), 0 12px 40px var(--sombra-fuerte);
+  box-shadow: 0 0 56px var(--resplandor-dorado), 0 12px 40px var(--sombra-fuerte);
+  transform: scale(1.03);
+  cursor: pointer;
 }
 
 .ruleta-img {
@@ -1072,6 +1292,16 @@ button {
 .mensaje-final strong { color: var(--dorado-brillo); }
 .mensaje-final .btn { margin: 0.35rem; }
 
+.mensaje-aprendizaje {
+  background: rgba(212, 160, 23, 0.15);
+  border: 1px solid var(--dorado);
+  border-radius: 12px;
+  padding: 0.75rem;
+  font-size: 1rem;
+  margin-top: 0.75rem;
+  color: var(--dorado-claro);
+}
+
 /* Partículas doradas decorativas (inicio) */
 .chispas-fondo {
   position: fixed;
@@ -1107,6 +1337,30 @@ button {
   .ruleta-contenedor { width: 210px; height: 210px; }
   .grafico-barras { gap: 1rem; height: 130px; }
   .btn { min-width: 180px; font-size: 0.95rem; }
+  
+  /* Mapa responsive */
+  .mapa-interactivo-contenedor {
+    max-width: 95%;
+  }
+  
+  .punto-icono {
+    width: 44px;
+    height: 44px;
+  }
+  
+  .punto-icono img {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .punto-nombre {
+    font-size: 0.65rem;
+  }
+  
+  .michi-viajero {
+    width: 36px;
+    height: 36px;
+  }
 }
 
 @media (min-width: 768px) {
