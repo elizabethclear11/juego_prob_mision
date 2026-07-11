@@ -210,7 +210,7 @@
   // Estas coordenadas coinciden EXACTAMENTE con los iconos en la imagen del mapa
   const POSICIONES_MAPA = {
     inicio: { top: 88, left: 18 },   // Abajo izquierda (Michi)
-    dado: { top: 80, left: 20 },     // Dado en círculo dorado, abajo izquierda
+    dado: { top: 84, left: 52 },     // Dado dorado grande al inicio del camino
     cajas: { top: 65, left: 72 },    // Las 3 cajas a la derecha
     bolsa: { top: 48, left: 38 },    // Bolsa grande con G
     ruleta: { top: 32, left: 75 },   // Ruleta arriba derecha
