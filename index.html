@@ -108,8 +108,8 @@
             <span class="punto-estado"></span>
           </button>
 
-          <!-- Dado: abajo izquierda, dentro del círculo dorado -->
-          <button class="punto-mapa" data-id="dado" data-pos="dado" style="top: 80%; left: 20%;">
+          <!-- Dado: encima del dado dorado grande al inicio del camino -->
+          <button class="punto-mapa" data-id="dado" data-pos="dado" style="top: 84%; left: 52%;">
             <div class="punto-icono">
               <img src="img/iconos/icono-dado.png" alt="Misión Dado">
             </div>
@@ -156,9 +156,9 @@
           <!-- Camino visual (líneas conectoras siguiendo el sendero real del mapa) -->
           <svg class="camino-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
             <!-- Inicio -> Dado -->
-            <path class="linea-camino" d="M 18 88 Q 19 84, 20 80" stroke-dasharray="5,5" />
-            <!-- Dado -> Cajas (siguiendo el camino serpenteante hacia la derecha) -->
-            <path class="linea-camino" d="M 20 80 Q 30 78, 40 74 Q 55 70, 72 65" stroke-dasharray="5,5" />
+            <path class="linea-camino" d="M 18 88 Q 32 88, 44 86 Q 50 85, 52 84" stroke-dasharray="5,5" />
+            <!-- Dado -> Cajas -->
+            <path class="linea-camino" d="M 52 84 Q 58 78, 64 72 Q 70 68, 72 65" stroke-dasharray="5,5" />
             <!-- Cajas -> Bolsa (bajando y hacia la izquierda) -->
             <path class="linea-camino" d="M 72 65 Q 60 60, 50 55 Q 42 52, 38 48" stroke-dasharray="5,5" />
             <!-- Bolsa -> Ruleta (subiendo hacia la derecha) -->
